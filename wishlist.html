@@ -1,0 +1,246 @@
+<!-- wishlist.html - Dedicated Wishlist Page (Alternative View) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Wishlist - LuxeForm</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600,700&family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    body { font-family: 'Inter', sans-serif; }
+    .font-serif { font-family: 'Playfair Display', serif; }
+    
+    .wishlist-item {
+      transition: all 0.3s ease;
+    }
+    .wishlist-item:hover {
+      transform: translateY(-4px);
+    }
+    
+    .price-drop {
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+  </style>
+</head>
+<body class="bg-stone-50 text-stone-900 antialiased">
+
+  <!-- Navigation -->
+  <nav class="fixed w-full z-50 bg-white/95 backdrop-blur border-b border-stone-200">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <a href="/" class="flex items-center gap-2">
+        <div class="w-10 h-10 bg-stone-900 rounded-xl flex items-center justify-center">
+          <i data-lucide="sofa" class="w-6 h-6 text-white"></i>
+        </div>
+        <span class="font-serif text-2xl font-bold">LuxeForm</span>
+      </a>
+      
+      <div class="flex items-center gap-6">
+        <a href="/profile.html" class="text-stone-600 hover:text-stone-900">My Account</a>
+        <button onclick="toggleCart()" class="relative">
+          <i data-lucide="shopping-bag" class="w-6 h-6 text-stone-700"></i>
+          <span id="cart-badge" class="absolute -top-2 -right-2 w-5 h-5 bg-stone-900 text-white text-xs rounded-full flex items-center justify-center hidden">0</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="pt-24 pb-12 px-6 max-w-7xl mx-auto">
+    
+    <!-- Header -->
+    <div class="flex justify-between items-end mb-8">
+      <div>
+        <h1 class="font-serif text-4xl font-bold text-stone-900 mb-2">My Wishlist</h1>
+        <p class="text-stone-600"><span id="wishlist-count">0</span> items saved for later</p>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="shareWishlist()" class="px-4 py-2 border border-stone-300 rounded-lg text-stone-700 hover:bg-stone-50 flex items-center gap-2">
+          <i data-lucide="share-2" class="w-4 h-4"></i>
+          Share
+        </button>
+        <button onclick="addAllToCart()" class="px-6 py-2 bg-stone-900 text-white rounded-lg hover:bg-stone-800 flex items-center gap-2">
+          <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+          Add All to Cart
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="flex gap-4 mb-8 overflow-x-auto pb-2">
+      <button class="px-4 py-2 bg-stone-900 text-white rounded-full text-sm font-medium">All Items</button>
+      <button class="px-4 py-2 bg-white border border-stone-200 text-stone-600 rounded-full text-sm font-medium hover:border-stone-900">On Sale</button>
+      <button class="px-4 py-2 bg-white border border-stone-200 text-stone-600 rounded-full text-sm font-medium hover:border-stone-900">In Stock</button>
+      <button class="px-4 py-2 bg-white border border-stone-200 text-stone-600 rounded-full text-sm font-medium hover:border-stone-900">Price Drop</button>
+    </div>
+
+    <!-- Wishlist Grid -->
+    <div id="wishlist-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <!-- Items loaded dynamically -->
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="hidden text-center py-24">
+      <div class="w-32 h-32 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-6">
+        <i data-lucide="heart" class="w-16 h-16 text-stone-300"></i>
+      </div>
+      <h2 class="font-serif text-2xl font-bold text-stone-900 mb-2">Your wishlist is empty</h2>
+      <p class="text-stone-500 mb-8 max-w-md mx-auto">Save your favorite furniture pieces here and they'll be waiting for you when you're ready to buy.</p>
+      <a href="/" class="inline-flex items-center gap-2 bg-stone-900 text-white px-8 py-4 rounded-xl font-medium hover:bg-stone-800 transition-colors">
+        <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+        Explore Collection
+      </a>
+    </div>
+
+  </main>
+
+  <script>
+    const API_URL = 'http://localhost:5000/api';
+    let wishlistItems = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      lucide.createIcons();
+      await loadWishlist();
+    });
+
+    async function loadWishlist() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = '/login.html?redirect=wishlist';
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/users/wishlist`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          wishlistItems = data.wishlist || [];
+          
+          document.getElementById('wishlist-count').textContent = wishlistItems.length;
+          
+          if (wishlistItems.length === 0) {
+            document.getElementById('wishlist-container').classList.add('hidden');
+            document.getElementById('empty-state').classList.remove('hidden');
+          } else {
+            renderWishlist();
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load wishlist:', error);
+      }
+    }
+
+    function renderWishlist() {
+      const container = document.getElementById('wishlist-container');
+      
+      container.innerHTML = wishlistItems.map(item => `
+        <div class="wishlist-item bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden group">
+          <div class="relative h-64 bg-stone-100">
+            ${item.images?.thumbnail ? `
+              <img src="${item.images.thumbnail}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+            ` : `
+              <div class="w-full h-full flex items-center justify-center">
+                <i data-lucide="sofa" class="w-20 h-20 text-stone-300"></i>
+              </div>
+            `}
+            
+            ${item.isOnSale ? '<span class="absolute top-4 left-4 bg-red-500 text-white text-xs px-3 py-1 rounded-full price-drop">SALE</span>' : ''}
+            
+            <button onclick="removeFromWishlist('${item._id}')" class="absolute top-4 right-4 p-2 bg-white/90 rounded-full hover:bg-red-50 hover:text-red-500 transition-colors">
+              <i data-lucide="trash-2" class="w-5 h-5"></i>
+            </button>
+            
+            <div class="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+              <button onclick="quickAddToCart('${item._id}')" class="w-full bg-white text-stone-900 py-3 rounded-xl font-medium hover:bg-stone-100 transition-colors">
+                Quick Add
+              </button>
+            </div>
+          </div>
+          
+          <div class="p-6">
+            <h3 class="font-serif text-lg font-bold text-stone-900 mb-1">${item.name}</h3>
+            <p class="text-sm text-stone-500 mb-3 line-clamp-2">${item.shortDescription || item.description}</p>
+            
+            <div class="flex items-center gap-2 mb-4">
+              ${item.configurations?.colors?.slice(0, 3).map(color => `
+                <div class="w-6 h-6 rounded-full border-2 border-white shadow-sm" style="background-color: ${color.hex}" title="${color.name}"></div>
+              `).join('') || ''}
+            </div>
+            
+            <div class="flex items-center justify-between">
+              <div>
+                ${item.comparePrice ? `
+                  <p class="text-sm text-stone-400 line-through">₹${item.comparePrice.toLocaleString()}</p>
+                ` : ''}
+                <p class="text-xl font-bold text-stone-900">₹${item.basePrice.toLocaleString()}</p>
+              </div>
+              <a href="/product.html?id=${item._id}" class="p-3 bg-stone-100 rounded-xl hover:bg-stone-200 transition-colors">
+                <i data-lucide="arrow-right" class="w-5 h-5 text-stone-700"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+      `).join('');
+      
+      lucide.createIcons();
+    }
+
+    async function removeFromWishlist(productId) {
+      try {
+        const response = await fetch(`${API_URL}/users/wishlist/${productId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+
+        if (response.ok) {
+          wishlistItems = wishlistItems.filter(item => item._id !== productId);
+          document.getElementById('wishlist-count').textContent = wishlistItems.length;
+          
+          if (wishlistItems.length === 0) {
+            document.getElementById('wishlist-container').classList.add('hidden');
+            document.getElementById('empty-state').classList.remove('hidden');
+          } else {
+            renderWishlist();
+          }
+          
+          showToast('Removed from wishlist');
+        }
+      } catch (error) {
+        showToast('Failed to remove item', 'error');
+      }
+    }
+
+    async function quickAddToCart(productId) {
+      // Add to cart logic
+      showToast('Added to cart!');
+    }
+
+    function addAllToCart() {
+      showToast(`Adding ${wishlistItems.length} items to cart...`);
+    }
+
+    function shareWishlist() {
+      const url = window.location.href;
+      navigator.clipboard.writeText(url);
+      showToast('Wishlist link copied!');
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `fixed bottom-4 right-4 z-50 px-6 py-4 rounded-xl text-white ${type === 'error' ? 'bg-red-500' : 'bg-stone-900'} shadow-2xl`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+  </script>
+</body>
+</html>

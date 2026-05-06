@@ -1,0 +1,645 @@
+<!-- reviews.html - Reviews & Ratings Page -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reviews & Ratings - LuxeForm</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600,700&family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    body { font-family: 'Inter', sans-serif; }
+    .font-serif { font-family: 'Playfair Display', serif; }
+    
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+    }
+    
+    .star-rating {
+      display: inline-flex;
+      gap: 4px;
+    }
+    .star {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .star:hover, .star.active {
+      color: #fbbf24;
+      transform: scale(1.1);
+    }
+    .star.inactive {
+      color: #e5e7eb;
+    }
+    
+    .review-card {
+      transition: all 0.3s ease;
+    }
+    .review-card:hover {
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+    
+    .progress-bar {
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #fbbf24;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+    
+    .photo-upload {
+      border: 2px dashed #e5e7eb;
+      transition: all 0.2s ease;
+    }
+    .photo-upload:hover {
+      border-color: #1a1a1a;
+      background: #fafaf9;
+    }
+    
+    .helpful-btn {
+      transition: all 0.2s ease;
+    }
+    .helpful-btn:hover, .helpful-btn.active {
+      background: #f5f5f4;
+      color: #1a1a1a;
+    }
+    
+    .verified-badge {
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    }
+  </style>
+</head>
+<body class="bg-stone-50 text-stone-900 antialiased">
+
+  <!-- Navigation -->
+  <nav class="fixed w-full z-50 glass-panel border-b border-stone-200/50">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex justify-between items-center">
+        <a href="/" class="flex items-center gap-2">
+          <div class="w-10 h-10 bg-stone-900 rounded-xl flex items-center justify-center">
+            <i data-lucide="sofa" class="w-6 h-6 text-white"></i>
+          </div>
+          <span class="font-serif text-2xl font-bold text-stone-900">LuxeForm</span>
+        </a>
+        
+        <div class="flex items-center gap-6">
+          <a href="/profile.html" class="text-stone-600 hover:text-stone-900">My Account</a>
+          <button onclick="toggleCart()" class="relative">
+            <i data-lucide="shopping-bag" class="w-6 h-6 text-stone-700"></i>
+            <span id="cart-badge" class="absolute -top-2 -right-2 w-5 h-5 bg-stone-900 text-white text-xs rounded-full flex items-center justify-center hidden">0</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="pt-24 pb-12 px-6 max-w-7xl mx-auto">
+    
+    <!-- Header -->
+    <div class="text-center mb-12">
+      <h1 class="font-serif text-4xl font-bold text-stone-900 mb-4">Customer Reviews</h1>
+      <p class="text-stone-600 max-w-2xl mx-auto">See what our customers are saying about their LuxeForm furniture. Your feedback helps us create better products.</p>
+    </div>
+
+    <!-- Rating Overview -->
+    <div class="grid lg:grid-cols-3 gap-8 mb-12">
+      <!-- Overall Rating -->
+      <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-8 text-center">
+        <div class="text-6xl font-bold text-stone-900 mb-2" id="overall-rating">4.8</div>
+        <div class="star-rating text-2xl mb-2" id="overall-stars"></div>
+        <p class="text-stone-500 mb-4">Based on <span id="total-reviews">1,234</span> reviews</p>
+        <button onclick="showWriteReview()" class="w-full bg-stone-900 text-white py-3 rounded-xl font-medium hover:bg-stone-800 transition-colors">
+          Write a Review
+        </button>
+      </div>
+
+      <!-- Rating Breakdown -->
+      <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-stone-100 p-8">
+        <h3 class="font-semibold text-stone-900 mb-6">Rating Breakdown</h3>
+        <div class="space-y-3" id="rating-breakdown">
+          <!-- Loaded dynamically -->
+          <div class="flex items-center gap-4">
+            <span class="text-sm font-medium w-12">5 star</span>
+            <div class="flex-1 progress-bar">
+              <div class="progress-fill" style="width: 75%"></div>
+            </div>
+            <span class="text-sm text-stone-500 w-16 text-right">75%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters & Sort -->
+    <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
+      <div class="flex gap-2 overflow-x-auto pb-2">
+        <button onclick="filterReviews('all')" class="filter-btn active px-4 py-2 rounded-full bg-stone-900 text-white text-sm font-medium" data-filter="all">All Reviews</button>
+        <button onclick="filterReviews('5')" class="filter-btn px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-sm font-medium hover:bg-stone-200" data-filter="5">5 Star</button>
+        <button onclick="filterReviews('4')" class="filter-btn px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-sm font-medium hover:bg-stone-200" data-filter="4">4 Star</button>
+        <button onclick="filterReviews('3')" class="filter-btn px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-sm font-medium hover:bg-stone-200" data-filter="3">3 Star</button>
+        <button onclick="filterReviews('verified')" class="filter-btn px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-sm font-medium hover:bg-stone-200" data-filter="verified">Verified Purchase</button>
+        <button onclick="filterReviews('photos')" class="filter-btn px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-sm font-medium hover:bg-stone-200" data-filter="photos">With Photos</button>
+      </div>
+      
+      <select onchange="sortReviews(this.value)" class="px-4 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:border-stone-900 bg-white">
+        <option value="newest">Most Recent</option>
+        <option value="highest">Highest Rated</option>
+        <option value="lowest">Lowest Rated</option>
+        <option value="helpful">Most Helpful</option>
+      </select>
+    </div>
+
+    <!-- Reviews Grid -->
+    <div id="reviews-container" class="grid md:grid-cols-2 gap-6">
+      <!-- Reviews loaded here -->
+    </div>
+
+    <!-- Load More -->
+    <div class="text-center mt-12">
+      <button onclick="loadMoreReviews()" id="load-more-btn" class="px-8 py-3 border-2 border-stone-900 text-stone-900 rounded-full font-medium hover:bg-stone-900 hover:text-white transition-all">
+        Load More Reviews
+      </button>
+    </div>
+
+  </main>
+
+  <!-- Write Review Modal -->
+  <div id="write-review-modal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+    <div class="min-h-screen px-4 py-8 flex items-center justify-center">
+      <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white border-b border-stone-100 p-6 flex justify-between items-center">
+          <h3 class="font-serif text-2xl font-bold text-stone-900">Write a Review</h3>
+          <button onclick="closeWriteReview()" class="p-2 hover:bg-stone-100 rounded-full">
+            <i data-lucide="x" class="w-6 h-6 text-stone-500"></i>
+          </button>
+        </div>
+        
+        <form onsubmit="submitReview(event)" class="p-6 space-y-6">
+          <!-- Product Selection -->
+          <div>
+            <label class="block text-sm font-medium text-stone-700 mb-2">Select Product *</label>
+            <select id="review-product" required class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 bg-white">
+              <option value="">Choose a product...</option>
+              <!-- Loaded from orders -->
+            </select>
+          </div>
+
+          <!-- Star Rating -->
+          <div>
+            <label class="block text-sm font-medium text-stone-700 mb-2">Your Rating *</label>
+            <div class="star-rating text-3xl" id="star-input">
+              <span class="star inactive" data-rating="1" onclick="setRating(1)"><i data-lucide="star" class="w-8 h-8 fill-current"></i></span>
+              <span class="star inactive" data-rating="2" onclick="setRating(2)"><i data-lucide="star" class="w-8 h-8 fill-current"></i></span>
+              <span class="star inactive" data-rating="3" onclick="setRating(3)"><i data-lucide="star" class="w-8 h-8 fill-current"></i></span>
+              <span class="star inactive" data-rating="4" onclick="setRating(4)"><i data-lucide="star" class="w-8 h-8 fill-current"></i></span>
+              <span class="star inactive" data-rating="5" onclick="setRating(5)"><i data-lucide="star" class="w-8 h-8 fill-current"></i></span>
+            </div>
+            <input type="hidden" id="rating-value" required>
+            <p class="text-sm text-stone-500 mt-2" id="rating-text">Click to rate</p>
+          </div>
+
+          <!-- Review Title -->
+          <div>
+            <label class="block text-sm font-medium text-stone-700 mb-2">Review Title *</label>
+            <input type="text" id="review-title" required maxlength="100" placeholder="Summarize your experience" 
+              class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+          </div>
+
+          <!-- Review Text -->
+          <div>
+            <label class="block text-sm font-medium text-stone-700 mb-2">Your Review *</label>
+            <textarea id="review-text" required rows="4" maxlength="1000" placeholder="Tell us what you liked or didn't like about the product..."
+              class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 resize-none"></textarea>
+            <p class="text-xs text-stone-400 mt-1 text-right"><span id="char-count">0</span>/1000</p>
+          </div>
+
+          <!-- Photo Upload -->
+          <div>
+            <label class="block text-sm font-medium text-stone-700 mb-2">Add Photos (Optional)</label>
+            <div class="flex gap-4 flex-wrap">
+              <div class="photo-upload w-24 h-24 rounded-xl flex flex-col items-center justify-center cursor-pointer" onclick="document.getElementById('photo-input').click()">
+                <i data-lucide="camera" class="w-6 h-6 text-stone-400 mb-1"></i>
+                <span class="text-xs text-stone-400">Add Photo</span>
+              </div>
+              <input type="file" id="photo-input" multiple accept="image/*" class="hidden" onchange="handlePhotoUpload(this)">
+              <div id="photo-preview" class="flex gap-2 flex-wrap"></div>
+            </div>
+          </div>
+
+          <!-- Recommend -->
+          <div>
+            <label class="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" id="recommend-product" class="w-5 h-5 rounded border-stone-300 text-stone-900 focus:ring-stone-900">
+              <span class="text-stone-700">I would recommend this product to a friend</span>
+            </label>
+          </div>
+
+          <button type="submit" id="submit-review-btn" class="w-full bg-stone-900 text-white py-4 rounded-xl font-semibold hover:bg-stone-800 transition-colors flex items-center justify-center gap-2">
+            <span>Submit Review</span>
+            <i data-lucide="send" class="w-5 h-5"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Review Detail Modal -->
+  <div id="review-detail-modal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+    <div class="min-h-screen px-4 py-8 flex items-center justify-center">
+      <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full" id="review-detail-content">
+        <!-- Content loaded dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:5000/api';
+    let reviews = [];
+    let currentRating = 0;
+    let uploadedPhotos = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      loadReviews();
+      loadPurchasedProducts();
+    });
+
+    async function loadReviews() {
+      try {
+        const response = await fetch(`${API_URL}/reviews`);
+        const data = await response.json();
+        
+        if (data.success) {
+          reviews = data.reviews;
+          updateRatingOverview(data.stats);
+          renderReviews();
+        }
+      } catch (error) {
+        console.error('Failed to load reviews:', error);
+      }
+    }
+
+    function updateRatingOverview(stats) {
+      document.getElementById('overall-rating').textContent = stats.average.toFixed(1);
+      document.getElementById('total-reviews').textContent = stats.total.toLocaleString();
+      
+      // Render stars
+      const starsContainer = document.getElementById('overall-stars');
+      const fullStars = Math.floor(stats.average);
+      const hasHalf = stats.average % 1 >= 0.5;
+      
+      let starsHtml = '';
+      for (let i = 1; i <= 5; i++) {
+        if (i <= fullStars) {
+          starsHtml += '<i data-lucide="star" class="w-6 h-6 text-yellow-400 fill-current"></i>';
+        } else if (i === fullStars + 1 && hasHalf) {
+          starsHtml += '<i data-lucide="star-half" class="w-6 h-6 text-yellow-400 fill-current"></i>';
+        } else {
+          starsHtml += '<i data-lucide="star" class="w-6 h-6 text-stone-200"></i>';
+        }
+      }
+      starsContainer.innerHTML = starsHtml;
+
+      // Render breakdown
+      const breakdown = document.getElementById('rating-breakdown');
+      breakdown.innerHTML = [5, 4, 3, 2, 1].map(star => {
+        const count = stats.breakdown[star] || 0;
+        const percentage = stats.total ? (count / stats.total * 100) : 0;
+        
+        return `
+          <div class="flex items-center gap-4">
+            <span class="text-sm font-medium w-12">${star} star</span>
+            <div class="flex-1 progress-bar">
+              <div class="progress-fill" style="width: ${percentage}%"></div>
+            </div>
+            <span class="text-sm text-stone-500 w-16 text-right">${Math.round(percentage)}%</span>
+          </div>
+        `;
+      }).join('');
+      
+      lucide.createIcons();
+    }
+
+    function renderReviews() {
+      const container = document.getElementById('reviews-container');
+      
+      if (reviews.length === 0) {
+        container.innerHTML = '<div class="col-span-2 text-center py-12 text-stone-400">No reviews yet</div>';
+        return;
+      }
+
+      container.innerHTML = reviews.map(review => `
+        <div class="review-card bg-white rounded-2xl shadow-sm border border-stone-100 p-6">
+          <div class="flex justify-between items-start mb-4">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 bg-stone-200 rounded-full flex items-center justify-center">
+                <span class="font-bold text-stone-600">${review.user.firstName[0]}${review.user.lastName[0]}</span>
+              </div>
+              <div>
+                <p class="font-semibold text-stone-900">${review.user.firstName} ${review.user.lastName}</p>
+                <div class="flex items-center gap-2">
+                  <div class="star-rating text-sm">
+                    ${renderStars(review.rating)}
+                  </div>
+                  ${review.isVerifiedPurchase ? `
+                    <span class="verified-badge text-white text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <i data-lucide="check-circle" class="w-3 h-3"></i>
+                      Verified
+                    </span>
+                  ` : ''}
+                </div>
+              </div>
+            </div>
+            <span class="text-sm text-stone-400">${formatDate(review.createdAt)}</span>
+          </div>
+
+          <h4 class="font-semibold text-stone-900 mb-2">${review.title}</h4>
+          <p class="text-stone-600 text-sm leading-relaxed mb-4 line-clamp-3">${review.comment}</p>
+
+          ${review.images?.length ? `
+            <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
+              ${review.images.map(img => `
+                <img src="${img}" class="w-20 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80" onclick="viewPhoto('${img}')">
+              `).join('')}
+            </div>
+          ` : ''}
+
+          <div class="flex items-center justify-between pt-4 border-t border-stone-100">
+            <button onclick="markHelpful('${review._id}')" class="helpful-btn flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-stone-500 ${review.isHelpful ? 'active' : ''}">
+              <i data-lucide="thumbs-up" class="w-4 h-4"></i>
+              <span>Helpful (${review.helpfulCount || 0})</span>
+            </button>
+            
+            <div class="flex items-center gap-2">
+              ${review.product ? `
+                <span class="text-xs text-stone-400">Reviewed: ${review.product.name}</span>
+              ` : ''}
+              <button onclick="viewReviewDetail('${review._id}')" class="text-stone-400 hover:text-stone-900">
+                <i data-lucide="more-horizontal" class="w-5 h-5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+      
+      lucide.createIcons();
+    }
+
+    function renderStars(rating) {
+      let html = '';
+      for (let i = 1; i <= 5; i++) {
+        html += `<i data-lucide="star" class="w-4 h-4 ${i <= rating ? 'text-yellow-400 fill-current' : 'text-stone-200'}"></i>`;
+      }
+      return html;
+    }
+
+    async function loadPurchasedProducts() {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        const response = await fetch(`${API_URL}/orders/my-orders`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const select = document.getElementById('review-product');
+          
+          // Get unique products from delivered orders
+          const products = new Map();
+          data.orders.forEach(order => {
+            if (order.status === 'delivered') {
+              order.items.forEach(item => {
+                if (!products.has(item.product._id)) {
+                  products.set(item.product._id, item.product);
+                }
+              });
+            }
+          });
+          
+          select.innerHTML = '<option value="">Choose a product...</option>' + 
+            Array.from(products.values()).map(p => `
+              <option value="${p._id}">${p.name}</option>
+            `).join('');
+        }
+      } catch (error) {
+        console.error('Failed to load products:', error);
+      }
+    }
+
+    // Review Form
+    function showWriteReview() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = '/login.html?redirect=reviews';
+        return;
+      }
+      document.getElementById('write-review-modal').classList.remove('hidden');
+    }
+
+    function closeWriteReview() {
+      document.getElementById('write-review-modal').classList.add('hidden');
+      resetReviewForm();
+    }
+
+    function setRating(rating) {
+      currentRating = rating;
+      document.getElementById('rating-value').value = rating;
+      
+      const stars = document.querySelectorAll('#star-input .star');
+      const texts = ['Poor', 'Fair', 'Good', 'Very Good', 'Excellent'];
+      
+      stars.forEach((star, idx) => {
+        if (idx < rating) {
+          star.classList.add('active');
+          star.classList.remove('inactive');
+        } else {
+          star.classList.remove('active');
+          star.classList.add('inactive');
+        }
+      });
+      
+      document.getElementById('rating-text').textContent = texts[rating - 1];
+    }
+
+    function handlePhotoUpload(input) {
+      const files = Array.from(input.files);
+      const preview = document.getElementById('photo-preview');
+      
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          uploadedPhotos.push(e.target.result);
+          preview.innerHTML += `
+            <div class="relative w-24 h-24">
+              <img src="${e.target.result}" class="w-full h-full object-cover rounded-xl">
+              <button onclick="removePhoto(${uploadedPhotos.length - 1})" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center">
+                <i data-lucide="x" class="w-3 h-3"></i>
+              </button>
+            </div>
+          `;
+          lucide.createIcons();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function removePhoto(index) {
+      uploadedPhotos.splice(index, 1);
+      // Re-render previews
+    }
+
+    async function submitReview(e) {
+      e.preventDefault();
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      const btn = document.getElementById('submit-review-btn');
+      btn.innerHTML = '<div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Submitting...';
+      btn.disabled = true;
+
+      const review = {
+        productId: document.getElementById('review-product').value,
+        rating: currentRating,
+        title: document.getElementById('review-title').value,
+        comment: document.getElementById('review-text').value,
+        images: uploadedPhotos,
+        recommend: document.getElementById('recommend-product').checked
+      };
+
+      try {
+        const response = await fetch(`${API_URL}/reviews`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(review)
+        });
+
+        if (response.ok) {
+          showToast('Review submitted successfully!', 'success');
+          closeWriteReview();
+          loadReviews();
+        } else {
+          const data = await response.json();
+          showToast(data.message || 'Failed to submit review', 'error');
+        }
+      } catch (error) {
+        showToast('Network error. Please try again.', 'error');
+      } finally {
+        btn.innerHTML = '<span>Submit Review</span><i data-lucide="send" class="w-5 h-5"></i>';
+        btn.disabled = false;
+        lucide.createIcons();
+      }
+    }
+
+    function resetReviewForm() {
+      document.getElementById('review-product').value = '';
+      setRating(0);
+      document.getElementById('review-title').value = '';
+      document.getElementById('review-text').value = '';
+      document.getElementById('recommend-product').checked = false;
+      uploadedPhotos = [];
+      document.getElementById('photo-preview').innerHTML = '';
+      document.getElementById('char-count').textContent = '0';
+    }
+
+    // Character count
+    document.getElementById('review-text')?.addEventListener('input', function() {
+      document.getElementById('char-count').textContent = this.value.length;
+    });
+
+    async function markHelpful(reviewId) {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/reviews/${reviewId}/helpful`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Update UI
+          loadReviews();
+        }
+      } catch (error) {
+        console.error('Failed to mark helpful:', error);
+      }
+    }
+
+    function filterReviews(filter) {
+      // Update UI
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        if (btn.dataset.filter === filter) {
+          btn.classList.add('bg-stone-900', 'text-white');
+          btn.classList.remove('bg-stone-100', 'text-stone-600');
+        } else {
+          btn.classList.remove('bg-stone-900', 'text-white');
+          btn.classList.add('bg-stone-100', 'text-stone-600');
+        }
+      });
+
+      // Filter logic
+      let filtered = reviews;
+      if (filter !== 'all') {
+        if (filter === 'verified') {
+          filtered = reviews.filter(r => r.isVerifiedPurchase);
+        } else if (filter === 'photos') {
+          filtered = reviews.filter(r => r.images?.length > 0);
+        } else {
+          filtered = reviews.filter(r => r.rating === parseInt(filter));
+        }
+      }
+      
+      // Re-render with filtered data
+      reviews = filtered;
+      renderReviews();
+      reviews = []; // Reset after render
+      loadReviews(); // Reload original
+    }
+
+    function sortReviews(sortBy) {
+      // Implement sorting
+      loadReviews();
+    }
+
+    function formatDate(dateString) {
+      return new Date(dateString).toLocaleDateString('en-IN', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `fixed bottom-4 right-4 z-50 px-6 py-4 rounded-xl text-white ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} shadow-2xl`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    window.onclick = function(event) {
+      if (event.target.id === 'write-review-modal') closeWriteReview();
+    }
+  </script>
+</body>
+</html>

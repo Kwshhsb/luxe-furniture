@@ -1,0 +1,539 @@
+<!-- referral.html - Referral System Page -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Refer & Earn - LuxeForm</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600,700&family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    body { font-family: 'Inter', sans-serif; }
+    .font-serif { font-family: 'Playfair Display', serif; }
+    
+    .gradient-bg {
+      background: linear-gradient(135deg, #1a1a1a 0%, #333 50%, #1a1a1a 100%);
+    }
+    
+    .reward-card {
+      background: linear-gradient(135deg, #ffffff 0%, #fafaf9 100%);
+      transition: all 0.3s ease;
+    }
+    .reward-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    
+    .referral-code {
+      background: linear-gradient(135deg, #f5f5f4 0%, #e7e5e4 100%);
+      border: 2px dashed #a8a29e;
+    }
+    
+    .progress-ring {
+      transform: rotate(-90deg);
+    }
+    .progress-ring-circle {
+      transition: stroke-dashoffset 0.5s ease;
+    }
+    
+    .milestone {
+      position: relative;
+    }
+    .milestone::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #e5e7eb;
+      transform: translateX(-50%);
+    }
+    
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      animation: confetti-fall 3s ease-out forwards;
+    }
+    @keyframes confetti-fall {
+      0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="bg-stone-50 text-stone-900 antialiased">
+
+  <!-- Navigation -->
+  <nav class="fixed w-full z-50 bg-white/95 backdrop-blur border-b border-stone-200">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <a href="/" class="flex items-center gap-2">
+        <div class="w-10 h-10 bg-stone-900 rounded-xl flex items-center justify-center">
+          <i data-lucide="sofa" class="w-6 h-6 text-white"></i>
+        </div>
+        <span class="font-serif text-2xl font-bold">LuxeForm</span>
+      </a>
+      <a href="/profile.html" class="text-stone-600 hover:text-stone-900">My Account</a>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="gradient-bg text-white pt-32 pb-16 px-6">
+    <div class="max-w-4xl mx-auto text-center">
+      <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur px-4 py-2 rounded-full mb-6">
+        <i data-lucide="gift" class="w-4 h-4"></i>
+        <span class="text-sm font-medium">Give ₹500, Get ₹500</span>
+      </div>
+      <h1 class="font-serif text-5xl md:text-6xl font-bold mb-6">Share the Love of<br>Great Design</h1>
+      <p class="text-xl text-stone-300 mb-8 max-w-2xl mx-auto">Invite your friends to LuxeForm and you both earn ₹500 off your next purchase. The more you share, the more you earn!</p>
+      
+      <!-- Referral Code Box -->
+      <div class="max-w-md mx-auto">
+        <div class="referral-code rounded-2xl p-6 mb-4">
+          <p class="text-sm text-stone-500 mb-2">Your Referral Code</p>
+          <div class="flex items-center justify-center gap-4">
+            <span id="referral-code" class="text-3xl font-bold text-stone-900 tracking-wider">LUXE500</span>
+            <button class="copy-btn p-3 bg-stone-900 text-white rounded-xl hover:bg-stone-800 transition-colors" data-clipboard-text="LUXE500">
+              <i data-lucide="copy" class="w-5 h-5"></i>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Share Buttons -->
+        <div class="flex justify-center gap-3">
+          <button onclick="shareWhatsApp()" class="p-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors">
+            <i data-lucide="message-circle" class="w-6 h-6"></i>
+          </button>
+          <button onclick="shareEmail()" class="p-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors">
+            <i data-lucide="mail" class="w-6 h-6"></i>
+          </button>
+          <button onclick="shareFacebook()" class="p-3 bg-blue-700 text-white rounded-xl hover:bg-blue-800 transition-colors">
+            <i data-lucide="facebook" class="w-6 h-6"></i>
+          </button>
+          <button onclick="shareTwitter()" class="p-3 bg-sky-500 text-white rounded-xl hover:bg-sky-600 transition-colors">
+            <i data-lucide="twitter" class="w-6 h-6"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats Dashboard -->
+  <section class="py-16 px-6 -mt-8">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid md:grid-cols-3 gap-6">
+        <!-- Total Earnings -->
+        <div class="reward-card rounded-2xl shadow-lg border border-stone-100 p-8 text-center relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-green-100 rounded-full -mr-16 -mt-16 opacity-50"></div>
+          <div class="relative">
+            <div class="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <i data-lucide="wallet" class="w-8 h-8 text-green-600"></i>
+            </div>
+            <p class="text-4xl font-bold text-stone-900 mb-1" id="total-earned">₹2,500</p>
+            <p class="text-stone-500">Total Earned</p>
+          </div>
+        </div>
+
+        <!-- Successful Referrals -->
+        <div class="reward-card rounded-2xl shadow-lg border border-stone-100 p-8 text-center relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-blue-100 rounded-full -mr-16 -mt-16 opacity-50"></div>
+          <div class="relative">
+            <div class="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <i data-lucide="users" class="w-8 h-8 text-blue-600"></i>
+            </div>
+            <p class="text-4xl font-bold text-stone-900 mb-1" id="successful-ref">5</p>
+            <p class="text-stone-500">Friends Referred</p>
+          </div>
+        </div>
+
+        <!-- Pending -->
+        <div class="reward-card rounded-2xl shadow-lg border border-stone-100 p-8 text-center relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-orange-100 rounded-full -mr-16 -mt-16 opacity-50"></div>
+          <div class="relative">
+            <div class="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <i data-lucide="clock" class="w-8 h-8 text-orange-600"></i>
+            </div>
+            <p class="text-4xl font-bold text-stone-900 mb-1" id="pending-ref">3</p>
+            <p class="text-stone-500">Pending</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Progress to Next Reward -->
+  <section class="py-8 px-6">
+    <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-stone-100 p-8">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h3 class="font-serif text-2xl font-bold text-stone-900">Next Reward</h3>
+          <p class="text-stone-500">Refer 5 more friends to unlock ₹2,000 bonus!</p>
+        </div>
+        <div class="text-right">
+          <p class="text-3xl font-bold text-stone-900">3/5</p>
+          <p class="text-sm text-stone-500">referred</p>
+        </div>
+      </div>
+      
+      <!-- Progress Bar -->
+      <div class="h-4 bg-stone-100 rounded-full overflow-hidden mb-6">
+        <div class="h-full bg-gradient-to-r from-stone-900 to-stone-700 rounded-full" style="width: 60%"></div>
+      </div>
+      
+      <!-- Milestones -->
+      <div class="flex justify-between">
+        <div class="text-center">
+          <div class="w-10 h-10 bg-stone-900 text-white rounded-full flex items-center justify-center mx-auto mb-2">
+            <i data-lucide="check" class="w-5 h-5"></i>
+          </div>
+          <p class="text-xs text-stone-500">₹500</p>
+        </div>
+        <div class="text-center">
+          <div class="w-10 h-10 bg-stone-900 text-white rounded-full flex items-center justify-center mx-auto mb-2">
+            <i data-lucide="check" class="w-5 h-5"></i>
+          </div>
+          <p class="text-xs text-stone-500">₹1,000</p>
+        </div>
+        <div class="text-center">
+          <div class="w-10 h-10 bg-stone-900 text-white rounded-full flex items-center justify-center mx-auto mb-2">
+            <i data-lucide="check" class="w-5 h-5"></i>
+          </div>
+          <p class="text-xs text-stone-500">₹1,500</p>
+        </div>
+        <div class="text-center">
+          <div class="w-10 h-10 bg-stone-200 text-stone-400 rounded-full flex items-center justify-center mx-auto mb-2 relative">
+            <span class="text-sm font-bold">4</span>
+            <div class="absolute inset-0 border-2 border-stone-900 rounded-full border-t-transparent animate-spin"></div>
+          </div>
+          <p class="text-xs text-stone-900 font-medium">₹2,000</p>
+        </div>
+        <div class="text-center">
+          <div class="w-10 h-10 bg-stone-200 text-stone-400 rounded-full flex items-center justify-center mx-auto mb-2">
+            <span class="text-sm font-bold">5</span>
+          </div>
+          <p class="text-xs text-stone-500">₹2,500</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section class="py-16 px-6 bg-white">
+    <div class="max-w-6xl mx-auto">
+      <h2 class="font-serif text-3xl font-bold text-stone-900 text-center mb-12">How It Works</h2>
+      
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="text-center">
+          <div class="w-20 h-20 bg-stone-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <span class="text-3xl font-bold text-stone-900">1</span>
+          </div>
+          <h3 class="font-semibold text-xl text-stone-900 mb-3">Share Your Code</h3>
+          <p class="text-stone-600">Copy your unique referral code and share it with friends via WhatsApp, email, or social media.</p>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-20 h-20 bg-stone-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <span class="text-3xl font-bold text-stone-900">2</span>
+          </div>
+          <h3 class="font-semibold text-xl text-stone-900 mb-3">Friends Shop</h3>
+          <p class="text-stone-600">Your friends get ₹500 off their first order of ₹5,000 or more when they use your code.</p>
+        </div>
+        
+        <div class="text-center">
+          <div class="w-20 h-20 bg-stone-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <span class="text-3xl font-bold text-stone-900">3</span>
+          </div>
+          <h3 class="font-semibold text-xl text-stone-900 mb-3">You Earn</h3>
+          <p class="text-stone-600">Once their order is delivered, you get ₹500 credit added to your LuxeForm wallet.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Referral History -->
+  <section class="py-16 px-6">
+    <div class="max-w-4xl mx-auto">
+      <h2 class="font-serif text-3xl font-bold text-stone-900 mb-8">Referral History</h2>
+      
+      <div class="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-stone-50">
+              <tr>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-stone-500 uppercase">Friend</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-stone-500 uppercase">Date</th>
+                <th class="px-6 py-4 text-left text-xs font-semibold text-stone-500 uppercase">Status</th>
+                <th class="px-6 py-4 text-right text-xs font-semibold text-stone-500 uppercase">Reward</th>
+              </tr>
+            </thead>
+            <tbody id="referral-history" class="divide-y divide-stone-100">
+              <!-- Loaded dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Gift Cards Section -->
+  <section class="py-16 px-6 bg-stone-100">
+    <div class="max-w-6xl mx-auto">
+      <div class="text-center mb-12">
+        <h2 class="font-serif text-3xl font-bold text-stone-900 mb-4">Gift Cards</h2>
+        <p class="text-stone-600 max-w-2xl mx-auto">Give the gift of beautiful furniture. Choose from our curated gift card designs.</p>
+      </div>
+
+      <!-- Gift Card Options -->
+      <div class="grid md:grid-cols-3 gap-6 mb-12">
+        <div class="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" onclick="selectGiftCard(1000)">
+          <div class="h-40 bg-gradient-to-br from-stone-200 to-stone-300 flex items-center justify-center">
+            <span class="font-serif text-4xl font-bold text-stone-700">₹1,000</span>
+          </div>
+          <div class="p-6">
+            <h3 class="font-semibold text-lg text-stone-900 mb-2">Starter</h3>
+            <p class="text-sm text-stone-500 mb-4">Perfect for small accessories and decor items</p>
+            <button class="w-full bg-stone-900 text-white py-3 rounded-xl font-medium hover:bg-stone-800">Select</button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border-2 border-stone-900 overflow-hidden cursor-pointer relative" onclick="selectGiftCard(5000)">
+          <div class="absolute top-4 right-4 bg-stone-900 text-white text-xs px-3 py-1 rounded-full">Popular</div>
+          <div class="h-40 bg-gradient-to-br from-stone-800 to-stone-900 flex items-center justify-center">
+            <span class="font-serif text-4xl font-bold text-white">₹5,000</span>
+          </div>
+          <div class="p-6">
+            <h3 class="font-semibold text-lg text-stone-900 mb-2">Classic</h3>
+            <p class="text-sm text-stone-500 mb-4">Great for chairs, tables, and small furniture</p>
+            <button class="w-full bg-stone-900 text-white py-3 rounded-xl font-medium hover:bg-stone-800">Select</button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" onclick="selectGiftCard(25000)">
+          <div class="h-40 bg-gradient-to-br from-amber-200 to-amber-300 flex items-center justify-center">
+            <span class="font-serif text-4xl font-bold text-amber-900">₹25,000</span>
+          </div>
+          <div class="p-6">
+            <h3 class="font-semibold text-lg text-stone-900 mb-2">Premium</h3>
+            <p class="text-sm text-stone-500 mb-4">Perfect for sofas and large furniture pieces</p>
+            <button class="w-full bg-stone-900 text-white py-3 rounded-xl font-medium hover:bg-stone-800">Select</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom Amount -->
+      <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-8">
+        <h3 class="font-semibold text-lg text-stone-900 mb-4">Custom Amount</h3>
+        <div class="flex gap-4 max-w-md">
+          <div class="relative flex-1">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-stone-500 text-lg">₹</span>
+            <input type="number" id="custom-amount" min="500" max="100000" step="500" placeholder="Enter amount" 
+              class="w-full pl-10 pr-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 text-lg">
+          </div>
+          <button onclick="buyCustomGiftCard()" class="px-8 py-3 bg-stone-900 text-white rounded-xl font-medium hover:bg-stone-800">
+            Buy Now
+          </button>
+        </div>
+        <p class="text-sm text-stone-500 mt-2">Min ₹500, Max ₹1,00,000</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Gift Card Modal -->
+  <div id="gift-card-modal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="font-serif text-2xl font-bold text-stone-900">Send Gift Card</h3>
+        <button onclick="closeGiftModal()" class="p-2 hover:bg-stone-100 rounded-full">
+          <i data-lucide="x" class="w-6 h-6 text-stone-500"></i>
+        </button>
+      </div>
+      
+      <div class="bg-gradient-to-br from-stone-800 to-stone-900 rounded-2xl p-6 text-white mb-6 text-center">
+        <p class="text-sm text-stone-300 mb-2">Gift Card Value</p>
+        <p class="text-5xl font-bold" id="gift-card-amount">₹5,000</p>
+      </div>
+      
+      <form onsubmit="sendGiftCard(event)" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-stone-700 mb-2">Recipient Name *</label>
+          <input type="text" required class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-stone-700 mb-2">Recipient Email *</label>
+          <input type="email" required class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-stone-700 mb-2">Your Message</label>
+          <textarea rows="3" maxlength="200" placeholder="Write a personal message..." 
+            class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 resize-none"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-stone-700 mb-2">Delivery Date</label>
+          <input type="date" class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+        </div>
+        <button type="submit" class="w-full bg-stone-900 text-white py-4 rounded-xl font-semibold hover:bg-stone-800 transition-colors">
+          Proceed to Payment
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:5000/api';
+    let selectedGiftAmount = 0;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      initClipboard();
+      loadReferralData();
+    });
+
+    function initClipboard() {
+      const clipboard = new ClipboardJS('.copy-btn');
+      
+      clipboard.on('success', function(e) {
+        showToast('Code copied to clipboard!');
+        e.clearSelection();
+      });
+    }
+
+    async function loadReferralData() {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        const response = await fetch(`${API_URL}/referrals/stats`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          document.getElementById('total-earned').textContent = '₹' + data.totalEarned.toLocaleString();
+          document.getElementById('successful-ref').textContent = data.successful;
+          document.getElementById('pending-ref').textContent = data.pending;
+          document.getElementById('referral-code').textContent = data.referralCode;
+          
+          // Render history
+          renderReferralHistory(data.history);
+        }
+      } catch (error) {
+        console.error('Failed to load referral data:', error);
+      }
+    }
+
+    function renderReferralHistory(history) {
+      const tbody = document.getElementById('referral-history');
+      
+      if (!history || history.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-stone-400">No referrals yet. Start sharing!</td></tr>';
+        return;
+      }
+      
+      tbody.innerHTML = history.map(ref => `
+        <tr>
+          <td class="px-6 py-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-stone-200 rounded-full flex items-center justify-center">
+                <span class="font-medium text-stone-600">${ref.friendName[0]}</span>
+              </div>
+              <span class="font-medium text-stone-900">${ref.friendName}</span>
+            </div>
+          </td>
+          <td class="px-6 py-4 text-sm text-stone-600">${formatDate(ref.date)}</td>
+          <td class="px-6 py-4">
+            <span class="px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(ref.status)}">
+              ${ref.status}
+            </span>
+          </td>
+          <td class="px-6 py-4 text-right font-semibold text-stone-900">
+            ${ref.status === 'completed' ? '₹500' : '-'}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Share functions
+    function shareWhatsApp() {
+      const code = document.getElementById('referral-code').textContent;
+      const text = `Get ₹500 off your first LuxeForm order! Use my code: ${code} at luxefurniture.com`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    }
+
+    function shareEmail() {
+      const code = document.getElementById('referral-code').textContent;
+      const subject = 'Get ₹500 off beautiful furniture at LuxeForm!';
+      const body = `Hi!\n\nI thought you'd love LuxeForm - they make amazing custom furniture. Use my referral code ${code} and get ₹500 off your first order of ₹5,000 or more.\n\nCheck them out: https://luxefurniture.com`;
+      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    }
+
+    function shareFacebook() {
+      const url = encodeURIComponent('https://luxefurniture.com/ref/LUXE500');
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
+    }
+
+    function shareTwitter() {
+      const text = encodeURIComponent('Get ₹500 off beautiful custom furniture at @LuxeForm! Use my code LUXE500 🛋️✨');
+      window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
+    }
+
+    // Gift Card functions
+    function selectGiftCard(amount) {
+      selectedGiftAmount = amount;
+      document.getElementById('gift-card-amount').textContent = '₹' + amount.toLocaleString();
+      document.getElementById('gift-card-modal').classList.remove('hidden');
+    }
+
+    function buyCustomGiftCard() {
+      const amount = parseInt(document.getElementById('custom-amount').value);
+      if (amount < 500 || amount > 100000) {
+        showToast('Please enter amount between ₹500 and ₹1,00,000', 'error');
+        return;
+      }
+      selectGiftCard(amount);
+    }
+
+    function closeGiftModal() {
+      document.getElementById('gift-card-modal').classList.add('hidden');
+    }
+
+    function sendGiftCard(e) {
+      e.preventDefault();
+      showToast('Proceeding to payment...', 'success');
+      // Redirect to checkout with gift card
+    }
+
+    function getStatusColor(status) {
+      const colors = {
+        completed: 'bg-green-100 text-green-800',
+        pending: 'bg-yellow-100 text-yellow-800',
+        processing: 'bg-blue-100 text-blue-800'
+      };
+      return colors[status] || 'bg-stone-100 text-stone-800';
+    }
+
+    function formatDate(dateString) {
+      return new Date(dateString).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `fixed bottom-4 right-4 z-50 px-6 py-4 rounded-xl text-white ${type === 'error' ? 'bg-red-500' : 'bg-green-500'} shadow-2xl`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    window.onclick = function(event) {
+      if (event.target.id === 'gift-card-modal') closeGiftModal();
+    }
+  </script>
+</body>
+</html>

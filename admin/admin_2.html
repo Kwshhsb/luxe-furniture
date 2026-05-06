@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LuxeForm Admin - Complete Management System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://js.stripe.com/v3/"></script>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    
+    * { font-family: 'Inter', sans-serif; }
+    
+    .glass-panel { 
+      background: rgba(255, 255, 255, 0.95); 
+      backdrop-filter: blur(20px); 
+    }
+    
+    .sidebar-item { transition: all 0.3s ease; }
+    .sidebar-item:hover, .sidebar-item.active { 
+      background: linear-gradient(135deg, #1a1a1a 0%, #333 100%);
+      color: white;
+      transform: translateX(5px);
+    }
+    
+    .stat-card { 
+      background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+      transition: all 0.3s ease;
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+    .stat-card:hover { 
+      transform: translateY(-5px); 
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, #1a1a1a 0%, #666 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    
+    .notification-dot {
+      animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+    
+    @keyframes ping {
+      75%, 100% { transform: scale(2); opacity: 0; }
+    }
+    
+    .table-row { transition: all 0.2s ease; }
+    .table-row:hover { background: #f9fafb; transform: scale(1.002); }
+    
+    .badge {
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    .badge:hover { transform: scale(1.05); }
+    
+    .progress-bar { transition: width 0.5s ease; }
+    
+    .modal-enter { animation: modalSlide 0.3s ease; }
+    @keyframes modalSlide {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    
+    .toast {
+      animation: toastSlide 0.3s ease;
+    }
+    @keyframes toastSlide {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    .live-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: #22c55e;
+      border-radius: 50%;
+      margin-right: 8px;
+      animation: pulse 2s infinite;
+    }
+  </style>
+</head>
+<body class="bg-stone-50 text-stone-900 overflow-x-hidden">
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-4 right-4 z-[9999] space-y-2"></div>
+
+  <!-- Sidebar -->
+  <aside class="fixed left-0 top-0 h-full w-72 bg-white border-r border-stone-200 z-50 overflow-y-auto shadow-xl">
+    <div class="p-6 border-b border-stone-100">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-gradient-to-br from-stone-900 to-stone-700 rounded-xl flex items-center justify-center">
+          <i data-lucide="crown" class="w-6 h-6 text-white"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-xl gradient-text">LuxeForm</h1>
+          <p class="text-xs text-stone-500 font-medium">ADMIN PRO</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Status -->
+    <div class="px-4 py-3 border-b border-stone-100 bg-green-50/50">
+      <div class="flex items-center gap-2 text-sm text-green-700">
+        <span class="live-indicator"></span>
+        <span class="font-medium">System Online</span>
+        <span class="ml-auto text-xs text-green-600" id="live-users">24 active</span>
+      </div>
+    </div>
+
+    <nav class="p-4 space-y-1">
+      <p class="px-4 py-2 text-xs font-bold text-stone-400 uppercase tracking-wider">Main</p>
+      
+      <button onclick="navigate('dashboard')" id="nav-dashboard" class="sidebar-item active w-full flex items-center gap-3 px-4 py-3 rounded-xl text-stone-700 font-medium">
+        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+        <span>Dashboard</span>
+        <span class="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full hidden" id="badge-dashboard">0</span>
+      </button>
+      
+      <button onclick="navigate('orders')" id="nav-orders" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-stone-700 font-medium">
+        <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+        <span>Orders</span>
+        <span class="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse" id="badge-orders">3</span>
+      </button>
+      
+      <button onclick="navigate('products')" id="nav-products" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-stone-700 font-medium">
+        <i data-lucide="package" class="w-5 h-5"></i>
+        <span>Products</span>
+        <span class="ml-auto bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full" id="badge-products">5</span>
+      </button>
+      
+      <button onclick="navigate('inventory')" id="nav-inventory" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-stone-700 font-medium">
+        <i data-lucide="warehouse" class="w-5 h-5"></i>
+        <span>Inventory</span>
+      </button>
+      
+      <button onclick="navigate('customers')" id="nav-customers" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-stone-700 font-medium">
+        <i data-lucide="users" class="w-5 h-5"></i>
+        <span>Customers</span>
+        <span class="ml-auto text-xs text-stone-500" id="badge-customers">1.2k</span>
+      </button>
+
+      <p class="px-4 py-2 mt-4 text-xs font-bold text-stone-400 uppercase tracking-wider">Marketing</p>
+      
+      <button onclick="navigate('coupons')" id="nav-coupons" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-stone-700 font-medium">
+        <i data-lucide="ticket" class="w-5 h-5"></i>
+        <span>Coupons & Offers</span>
+      </button>
+      
+      <button onclick="navigate('email')" id="nav-email" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-stone-700 font-medium">
+        <i data-lucide="mail" class="w-5 h-5"></i>
+        <span>Email Campaigns</span>
+      </button>
+      
+      <button onclick="navigate('analytics')" id="nav-analytics" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-stone-700 font-medium">
+        <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+        <span>Advanced Analytics</span>
+      </button>
+
+      <p class="px-4 py-2 mt-4 text-xs font-bold text-stone-400 uppercase tracking-wider">System</p>
+      
+      <button onclick="navigate('vendors')" id="nav-vendors" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-stone-700 font-medium">
+        <i data-lucide="store" class="w-5 h-5"></i>
+        <span>Multi-Vendor</span>
+      </button>
+      
+      <button onclick="navigate('settings')" id="nav-settings" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-stone-700 font-medium">
+        <i data-lucide="settings-2" class="w-5 h-5"></i>
+        <span>Settings</span>
+      </button>
+    </nav>
+
+    <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-stone-200 bg-white">
+      <div class="flex items-center gap-3 p-3 bg-stone-50 rounded-xl">
+        <img src="https://ui-avatars.com/api/?name=Admin+User&background=1a1a1a&color=fff" class="w-10 h-10 rounded-full">
+        <div class="flex-1 min-w-0">
+          <p class="font-semibold text-sm truncate" id="admin-name">Super Admin</p>
+          <p class="text-xs text-stone-500">Online now</p>
+        </div>
+        <button onclick="logout()" class="p-2 hover:bg-stone-200 rounded-lg transition-colors">
+          <i data-lucide="log-out" class="w-5 h-5 text-stone-600"></i>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="ml-72 min-h-screen">
+    
+    <!-- Top Navigation -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-stone-200 px-8 py-4">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 id="page-title" class="text-2xl font-bold text-stone-900">Dashboard Overview</h2>
+          <p id="page-subtitle" class="text-sm text-stone-500 mt-1">Real-time business intelligence</p>
+        </div>
+        
+        <div class="flex items-center gap-4">
+          <!-- Global Search -->
+          <div class="relative group">
+            <i data-lucide="search" class="absolute left-3 top-2.5 w-5 h-5 text-stone-400 group-focus-within:text-stone-900 transition-colors"></i>
+            <input type="text" id="global-search" placeholder="Search anything..." 
+              class="pl-10 pr-4 py-2 w-80 bg-stone-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-stone-900/20 focus:bg-white transition-all text-sm"
+              onkeyup="globalSearch(this.value)">
+          </div>
+          
+          <!-- Quick Actions -->
+          <div class="flex items-center gap-2">
+            <button onclick="quickAction('order')" class="p-2 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors" title="New Order">
+              <i data-lucide="plus-circle" class="w-5 h-5 text-stone-700"></i>
+            </button>
+            <button onclick="quickAction('product')" class="p-2 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors" title="Add Product">
+              <i data-lucide="package-plus" class="w-5 h-5 text-stone-700"></i>
+            </button>
+            <button onclick="quickAction('coupon')" class="p-2 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors" title="Create Coupon">
+              <i data-lucide="percent" class="w-5 h-5 text-stone-700"></i>
+            </button>
+          </div>
+          
+          <!-- Notifications -->
+          <div class="relative">
+            <button onclick="toggleNotifications()" class="p-2 hover:bg-stone-100 rounded-lg transition-colors relative">
+              <i data-lucide="bell" class="w-6 h-6 text-stone-700"></i>
+              <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full notification-dot"></span>
+            </button>
+            
+            <!-- Notification Dropdown -->
+            <div id="notification-dropdown" class="hidden absolute right-0 top-12 w-80 bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden z-50">
+              <div class="p-4 border-b border-stone-100 flex justify-between items-center">
+                <h4 class="font-semibold">Notifications</h4>
+                <button onclick="markAllRead()" class="text-xs text-stone-500 hover:text-stone-900">Mark all read</button>
+              </div>
+              <div id="notifications-list" class="max-h-64 overflow-y-auto">
+                <!-- Notifications loaded here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content Container -->
+    <div class="p-8 space-y-6">
+
+      <!-- DASHBOARD SECTION -->
+      <section id="section-dashboard" class="space-y-6">
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div class="stat-card p-6 rounded-2xl">
+            <div class="flex justify-between items-start mb-4">
+              <div class="p-3 bg-stone-900 rounded-xl">
+                <i data-lucide="shopping-bag" class="w-6 h-6 text-white"></i>
+              </div>
+              <div class="flex items-center gap-1 text-green-600 text-sm font-medium">
+                <i data-lucide="trending-up" class="w-4 h-4"></i>
+                <span>+12.5%</span>
+              </div>
+            </div>
+            <p class="text-3xl font-bold text-stone-900" id="kpi-orders">0</p>
+            <p class="text-sm text-stone-500 mt-1">Total Orders</p>
+            <div class="mt-3 h-1 bg-stone-100 rounded-full overflow-hidden">
+              <div class="h-full bg-stone-900 w-3/4 rounded-full progress-bar"></div>
+            </div>
+          </div>
+
+          <div class="stat-card p-6 rounded-2xl">
+            <div class="flex justify-between items-start mb-4">
+              <div class="p-3 bg-green-600 rounded-xl">
+                <i data-lucide="indian-rupee" class="w-6 h-6 text-white"></i>
+              </div>
+              <div class="flex items-center gap-1 text-green-600 text-sm font-medium">
+                <i data-lucide="trending-up" class="w-4 h-4"></i>
+                <span>+8.2%</span>
+              </div>
+            </div>
+            <p class="text-3xl font-bold text-stone-900" id="kpi-revenue">₹0</p>
+            <p class="text-sm text-stone-500 mt-1">Total Revenue</p>
+            <div class="mt-3 h-1 bg-stone-100 rounded-full overflow-hidden">
+              <div class="h-full bg-green-600 w-2/3 rounded-full progress-bar"></div>
+            </div>
+          </div>
+
+          <div class="stat-card p-6 rounded-2xl">
+            <div class="flex justify-between items-start mb-4">
+              <div class="p-3 bg-blue-600 rounded-xl">
+                <i data-lucide="users" class="w-6 h-6 text-white"></i>
+              </div>
+              <div class="flex items-center gap-1 text-green-600 text-sm font-medium">
+                <i data-lucide="trending-up" class="w-4 h-4"></i>
+                <span>+24</span>
+              </div>
+            </div>
+            <p class="text-3xl font-bold text-stone-900" id="kpi-customers">0</p>
+            <p class="text-sm text-stone-500 mt-1">Active Customers</p>
+            <div class="mt-3 h-1 bg-stone-100 rounded-full overflow-hidden">
+              <div class="h-full bg-blue-600 w-1/2 rounded-full progress-bar"></div>
+            </div>
+          </div>
+
+          <div class="stat-card p-6 rounded-2xl">
+            <div class="flex justify-between items-start mb-4">
+              <div class="p-3 bg-orange-500 rounded-xl">
+                <i data-lucide="package" class="w-6 h-6 text-white"></i>
+              </div>
+              <div class="flex items-center gap-1 text-red-600 text-sm font-medium">
+                <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                <span>-5</span>
+              </div>
+            </div>
+            <p class="text-3xl font-bold text-stone-900" id="kpi-stock">0</p>
+            <p class="text-sm text-stone-500 mt-1">Low Stock Alert</p>
+            <div class="mt-3 h-1 bg-stone-100 rounded-full overflow-hidden">
+              <div class="h-full bg-orange-500 w-1/4 rounded-full progress-bar"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+            <div class="flex justify-between items-center mb-6">
+              <div>
+                <h3 class="font-bold text-lg text-stone-900">Revenue Analytics</h3>
+                <p class="text-sm text-stone-500">Real-time sales performance</p>
+              </div>
+              <div class="flex gap-2">
+                <button onclick="setChartPeriod('7d')" class="px-3 py-1 text-sm rounded-lg bg-stone-900 text-white">7D</button>
+                <button onclick="setChartPeriod('30d')" class="px-3 py-1 text-sm rounded-lg text-stone-600 hover:bg-stone-100">30D</button>
+                <button onclick="setChartPeriod('1y')" class="px-3 py-1 text-sm rounded-lg text-stone-600 hover:bg-stone-100">1Y</button>
+              </div>
+            </div>
+            <canvas id="mainChart" height="120"></canvas>
+          </div>
+
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+            <h3 class="font-bold text-lg text-stone-900 mb-4">Sales by Category</h3>
+            <canvas id="categoryChart"></canvas>
+            <div class="mt-4 space-y-2" id="category-legend">
+              <!-- Dynamic legend -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Activity & Top Products -->
+        <div class="grid lg:grid-cols-3 gap-6">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="font-bold text-lg text-stone-900">Live Activity</h3>
+              <span class="flex items-center gap-1 text-xs text-green-600">
+                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                LIVE
+              </span>
+            </div>
+            <div id="live-activity" class="space-y-3 max-h-64 overflow-y-auto">
+              <!-- Real-time updates -->
+            </div>
+          </div>
+
+          <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+            <h3 class="font-bold text-lg text-stone-900 mb-4">Top Performing Products</h3>
+            <div class="space-y-4" id="top-products">
+              <!-- Top products -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ORDERS SECTION -->
+      <section id="section-orders" class="hidden space-y-6">
+        <!-- Advanced Filters -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-stone-100">
+          <div class="flex flex-wrap gap-4 items-end">
+            <div>
+              <label class="block text-xs font-medium text-stone-500 mb-1">Status</label>
+              <select id="filter-status" onchange="applyOrderFilters()" class="px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:border-stone-900">
+                <option value="">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="processing">Processing</option>
+                <option value="shipped">Shipped</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-xs font-medium text-stone-500 mb-1">Payment</label>
+              <select id="filter-payment" onchange="applyOrderFilters()" class="px-3 py-2 border border-stone-200 rounded-lg text-sm focus:outline-none focus:border-stone-900">
+                <option value="">All Payments</option>
+                <option value="completed">Paid</option>
+                <option value="pending">Pending</option>
+                <option value="cod">COD</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-xs font-medium text-stone-500 mb-1">Date Range</label>
+              <div class="flex gap-2">
+                <input type="date" id="filter-date-from" onchange="applyOrderFilters()" class="px-3 py-2 border border-stone-200 rounded-lg text-sm">
+                <input type="date" id="filter-date-to" onchange="applyOrderFilters()" class="px-3 py-2 border border-stone-200 rounded-lg text-sm">
+              </div>
+            </div>
+            
+            <div class="ml-auto flex gap-2">
+              <button onclick="bulkAction()" class="px-4 py-2 border border-stone-300 rounded-lg text-sm font-medium text-stone-700 hover:bg-stone-50">
+                Bulk Actions
+              </button>
+              <button onclick="exportData('orders')" class="px-4 py-2 bg-stone-900 text-white rounded-lg text-sm font-medium hover:bg-stone-800 flex items-center gap-2">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                Export CSV
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Orders Table -->
+        <div class="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-stone-50 border-b border-stone-200">
+                <tr>
+                  <th class="px-4 py-3 w-10">
+                    <input type="checkbox" id="select-all" onchange="toggleSelectAll()" class="rounded border-stone-300">
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Order ID</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Customer</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Items</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Total</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Status</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Payment</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Date</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="orders-table-body" class="divide-y divide-stone-100">
+                <!-- Orders loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Pagination -->
+          <div class="p-4 border-t border-stone-100 flex justify-between items-center">
+            <p class="text-sm text-stone-500">
+              Showing <span id="pagination-start">1</span>-<span id="pagination-end">10</span> of <span id="pagination-total">100</span>
+            </p>
+            <div class="flex gap-2">
+              <button onclick="changePage(-1)" class="px-3 py-1 border border-stone-200 rounded-lg text-sm hover:bg-stone-50 disabled:opacity-50" id="btn-prev">Previous</button>
+              <div id="page-numbers" class="flex gap-1"></div>
+              <button onclick="changePage(1)" class="px-3 py-1 border border-stone-200 rounded-lg text-sm hover:bg-stone-50 disabled:opacity-50" id="btn-next">Next</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- INVENTORY SECTION -->
+      <section id="section-inventory" class="hidden space-y-6">
+        <div class="grid lg:grid-cols-4 gap-6">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+            <div class="flex items-center justify-between mb-4">
+              <div class="p-3 bg-blue-100 rounded-xl">
+                <i data-lucide="package-check" class="w-6 h-6 text-blue-600"></i>
+              </div>
+              <span class="text-2xl font-bold text-stone-900">2,450</span>
+            </div>
+            <p class="text-sm text-stone-600">Total Units</p>
+          </div>
+          
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+            <div class="flex items-center justify-between mb-4">
+              <div class="p-3 bg-green-100 rounded-xl">
+                <i data-lucide="check-circle" class="w-6 h-6 text-green-600"></i>
+              </div>
+              <span class="text-2xl font-bold text-stone-900">1,890</span>
+            </div>
+            <p class="text-sm text-stone-600">In Stock</p>
+          </div>
+          
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+            <div class="flex items-center justify-between mb-4">
+              <div class="p-3 bg-orange-100 rounded-xl">
+                <i data-lucide="alert-triangle" class="w-6 h-6 text-orange-600"></i>
+              </div>
+              <span class="text-2xl font-bold text-stone-900">42</span>
+            </div>
+            <p class="text-sm text-stone-600">Low Stock</p>
+          </div>
+          
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+            <div class="flex items-center justify-between mb-4">
+              <div class="p-3 bg-red-100 rounded-xl">
+                <i data-lucide="x-circle" class="w-6 h-6 text-red-600"></i>
+              </div>
+              <span class="text-2xl font-bold text-stone-900">12</span>
+            </div>
+            <p class="text-sm text-stone-600">Out of Stock</p>
+          </div>
+        </div>
+
+        <!-- Inventory Management Table -->
+        <div class="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden">
+          <div class="p-4 border-b border-stone-100 flex justify-between items-center">
+            <h3 class="font-bold text-lg text-stone-900">Stock Management</h3>
+            <div class="flex gap-2">
+              <button onclick="adjustStockBulk()" class="px-4 py-2 border border-stone-300 rounded-lg text-sm font-medium text-stone-700 hover:bg-stone-50">
+                Bulk Adjust
+              </button>
+              <button onclick="showAddStockModal()" class="px-4 py-2 bg-stone-900 text-white rounded-lg text-sm font-medium hover:bg-stone-800">
+                Add Stock
+              </button>
+            </div>
+          </div>
+          
+          <table class="w-full">
+            <thead class="bg-stone-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Product</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-stone-500 uppercase">SKU</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Current Stock</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Reserved</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Available</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-table-body" class="divide-y divide-stone-100">
+              <!-- Inventory items -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- COUPONS SECTION -->
+      <section id="section-coupons" class="hidden space-y-6">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="font-bold text-xl text-stone-900">Coupons & Promotions</h3>
+            <p class="text-sm text-stone-500">Manage discounts and special offers</p>
+          </div>
+          <button onclick="showCouponModal()" class="px-6 py-3 bg-stone-900 text-white rounded-xl font-medium hover:bg-stone-800 flex items-center gap-2">
+            <i data-lucide="plus" class="w-5 h-5"></i>
+            Create Coupon
+          </button>
+        </div>
+
+        <!-- Coupon Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div class="bg-gradient-to-br from-stone-900 to-stone-800 text-white p-6 rounded-2xl">
+            <p class="text-stone-400 text-sm">Active Coupons</p>
+            <p class="text-3xl font-bold mt-2" id="coupon-active">12</p>
+          </div>
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+            <p class="text-stone-500 text-sm">Total Redemptions</p>
+            <p class="text-3xl font-bold text-stone-900 mt-2" id="coupon-redemptions">1,234</p>
+          </div>
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+            <p class="text-stone-500 text-sm">Revenue Generated</p>
+            <p class="text-3xl font-bold text-stone-900 mt-2" id="coupon-revenue">₹4.2L</p>
+          </div>
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+            <p class="text-stone-500 text-sm">Avg. Discount</p>
+            <p class="text-3xl font-bold text-stone-900 mt-2" id="coupon-avg">18%</p>
+          </div>
+        </div>
+
+        <!-- Coupons Table -->
+        <div class="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden">
+          <table class="w-full">
+            <thead class="bg-stone-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Code</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Type</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Value</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Usage</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Valid Period</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="coupons-table-body" class="divide-y divide-stone-100">
+              <!-- Coupons loaded here -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- EMAIL CAMPAIGNS SECTION -->
+      <section id="section-email" class="hidden space-y-6">
+        <div class="grid lg:grid-cols-3 gap-6">
+          <!-- Campaign List -->
+          <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-stone-100 p-6">
+            <div class="flex justify-between items-center mb-6">
+              <h3 class="font-bold text-lg text-stone-900">Email Campaigns</h3>
+              <button onclick="showEmailComposer()" class="px-4 py-2 bg-stone-900 text-white rounded-lg text-sm font-medium hover:bg-stone-800">
+                New Campaign
+              </button>
+            </div>
+            
+            <div id="email-campaigns" class="space-y-4">
+              <!-- Campaigns -->
+            </div>
+          </div>
+
+          <!-- Email Stats -->
+          <div class="space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+              <h4 class="font-semibold text-stone-900 mb-4">Email Performance</h4>
+              <div class="space-y-4">
+                <div>
+                  <div class="flex justify-between text-sm mb-1">
+                    <span class="text-stone-600">Open Rate</span>
+                    <span class="font-semibold text-stone-900">42.5%</span>
+                  </div>
+                  <div class="h-2 bg-stone-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-blue-500 w-[42.5%] rounded-full"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between text-sm mb-1">
+                    <span class="text-stone-600">Click Rate</span>
+                    <span class="font-semibold text-stone-900">18.2%</span>
+                  </div>
+                  <div class="h-2 bg-stone-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-green-500 w-[18.2%] rounded-full"></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="flex justify-between text-sm mb-1">
+                    <span class="text-stone-600">Conversion</span>
+                    <span class="font-semibold text-stone-900">8.7%</span>
+                  </div>
+                  <div class="h-2 bg-stone-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-purple-500 w-[8.7%] rounded-full"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Templates -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+              <h4 class="font-semibold text-stone-900 mb-4">Quick Templates</h4>
+              <div class="space-y-2">
+                <button onclick="loadTemplate('welcome')" class="w-full text-left p-3 rounded-lg hover:bg-stone-50 border border-stone-200 text-sm font-medium">
+                  Welcome Series
+                </button>
+                <button onclick="loadTemplate('abandoned')" class="w-full text-left p-3 rounded-lg hover:bg-stone-50 border border-stone-200 text-sm font-medium">
+                  Abandoned Cart
+                </button>
+                <button onclick="loadTemplate('promotional')" class="w-full text-left p-3 rounded-lg hover:bg-stone-50 border border-stone-200 text-sm font-medium">
+                  Promotional Offer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VENDORS SECTION -->
+      <section id="section-vendors" class="hidden space-y-6">
+        <div class="flex justify-between items-center">
+          <h3 class="font-bold text-xl text-stone-900">Multi-Vendor Management</h3>
+          <button onclick="showVendorModal()" class="px-6 py-3 bg-stone-900 text-white rounded-xl font-medium hover:bg-stone-800">
+            Add Vendor
+          </button>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-6">
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+            <h4 class="font-semibold text-stone-900 mb-4">Vendor Performance</h4>
+            <canvas id="vendorChart"></canvas>
+          </div>
+          
+          <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden">
+            <table class="w-full">
+              <thead class="bg-stone-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Vendor</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Products</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Sales</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Commission</th>
+                  <th class="px-6 py-3 text-left text-xs font-semibold text-stone-500 uppercase">Status</th>
+                </tr>
+              </thead>
+              <tbody id="vendors-table-body" class="divide-y divide-stone-100">
+                <!-- Vendors -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- MODALS -->
+
+  <!-- Order Detail Modal -->
+  <div id="modal-order-detail" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+    <div class="min-h-screen px-4 py-8 flex items-center justify-center">
+      <div class="bg-white rounded-3xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto modal-enter">
+        <!-- Modal content dynamically loaded -->
+        <div id="order-detail-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coupon Modal -->
+  <div id="modal-coupon" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+    <div class="min-h-screen px-4 py-8 flex items-center justify-center">
+      <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full modal-enter">
+        <div class="p-6 border-b border-stone-100 flex justify-between items-center">
+          <h3 class="font-bold text-xl text-stone-900">Create Coupon</h3>
+          <button onclick="closeModal('coupon')" class="p-2 hover:bg-stone-100 rounded-full">
+            <i data-lucide="x" class="w-5 h-5 text-stone-500"></i>
+          </button>
+        </div>
+        
+        <form onsubmit="saveCoupon(event)" class="p-6 space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-stone-700 mb-2">Coupon Code</label>
+            <div class="flex gap-2">
+              <input type="text" id="coupon-code" required class="flex-1 px-4 py-3 border border-stone-200 rounded-xl uppercase focus:outline-none focus:border-stone-900" placeholder="SUMMER2024">
+              <button type="button" onclick="generateCouponCode()" class="px-4 py-2 bg-stone-100 rounded-xl text-sm font-medium hover:bg-stone-200">
+                Generate
+              </button>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-stone-700 mb-2">Discount Type</label>
+              <select id="coupon-type" class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+                <option value="percentage">Percentage (%)</option>
+                <option value="fixed">Fixed Amount (₹)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-stone-700 mb-2">Value</label>
+              <input type="number" id="coupon-value" required min="1" class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-stone-700 mb-2">Min Order Amount</label>
+              <input type="number" id="coupon-min" min="0" class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-stone-700 mb-2">Max Uses</label>
+              <input type="number" id="coupon-max" min="1" class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-stone-700 mb-2">Start Date</label>
+              <input type="date" id="coupon-start" required class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-stone-700 mb-2">End Date</label>
+              <input type="date" id="coupon-end" required class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+            </div>
+          </div>
+          
+          <div class="pt-4 flex gap-3">
+            <button type="button" onclick="closeModal('coupon')" class="flex-1 px-4 py-3 border border-stone-300 rounded-xl font-medium text-stone-700 hover:bg-stone-50">
+              Cancel
+            </button>
+            <button type="submit" class="flex-1 px-4 py-3 bg-stone-900 text-white rounded-xl font-medium hover:bg-stone-800">
+              Create Coupon
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Email Composer Modal -->
+  <div id="modal-email-composer" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+    <div class="min-h-screen px-4 py-8 flex items-center justify-center">
+      <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full modal-enter">
+        <div class="p-6 border-b border-stone-100 flex justify-between items-center">
+          <h3 class="font-bold text-xl text-stone-900">Compose Email</h3>
+          <button onclick="closeModal('email-composer')" class="p-2 hover:bg-stone-100 rounded-full">
+            <i data-lucide="x" class="w-5 h-5 text-stone-500"></i>
+          </button>
+        </div>
+        
+        <form onsubmit="sendEmailCampaign(event)" class="p-6 space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-stone-700 mb-2">Campaign Name</label>
+            <input type="text" required class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-stone-700 mb-2">Subject Line</label>
+            <input type="text" required class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-stone-700 mb-2">Recipients</label>
+            <select class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+              <option>All Customers (1,234)</option>
+              <option>Active Customers (892)</option>
+              <option>VIP Customers (156)</option>
+              <option>Abandoned Cart (67)</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-stone-700 mb-2">Email Content</label>
+            <textarea rows="8" class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 font-mono text-sm" placeholder="<h1>Hello {{firstName}}</h1>&#10;<p>Your custom furniture awaits...</p>"></textarea>
+          </div>
+          
+          <div class="flex gap-3 pt-4">
+            <button type="button" onclick="previewEmail()" class="px-4 py-3 border border-stone-300 rounded-xl font-medium text-stone-700 hover:bg-stone-50 flex items-center gap-2">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+              Preview
+            </button>
+            <button type="button" onclick="scheduleEmail()" class="px-4 py-3 border border-stone-300 rounded-xl font-medium text-stone-700 hover:bg-stone-50 flex items-center gap-2">
+              <i data-lucide="calendar" class="w-4 h-4"></i>
+              Schedule
+            </button>
+            <button type="submit" class="flex-1 px-4 py-3 bg-stone-900 text-white rounded-xl font-medium hover:bg-stone-800 flex items-center justify-center gap-2">
+              <i data-lucide="send" class="w-4 h-4"></i>
+              Send Now
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global State
+    const API_URL = 'http://localhost:5000/api';
+    let currentUser = null;
+    let socket = null;
+    let currentPage = 1;
+    let selectedOrders = new Set();
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      initApp();
+    });
+
+    async function initApp() {
+      lucide.createIcons();
+      checkAuth();
+      initSocket();
+      loadDashboard();
+      setupEventListeners();
+      
+      // Set default dates for filters
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('filter-date-to').value = today;
+    }
+
+    function checkAuth() {
+      const token = localStorage.getItem('token');
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      
+      if (!token || user.role !== 'admin') {
+        window.location.href = '/login.html';
+        return;
+      }
+      
+      currentUser = user;
+      document.getElementById('admin-name').textContent = `${user.firstName} ${user.lastName}`;
+    }
+
+    function initSocket() {
+      // Real-time updates (implement with Socket.io)
+      socket = io(API_URL, { auth: { token: localStorage.getItem('token') } });
+      
+      socket.on('new-order', (data) => {
+        showToast('New order received!', 'success');
+        updateBadge('orders', 1);
+        addLiveActivity(data);
+      });
+      
+      socket.on('low-stock', (data) => {
+        showToast(`Low stock alert: ${data.productName}`, 'warning');
+        updateBadge('products', 1);
+      });
+      
+      socket.on('payment-received', (data) => {
+        showToast(`Payment received: ₹${data.amount}`, 'success');
+      });
+    }
+
+    // Navigation
+    function navigate(section) {
+      // Hide all sections
+      document.querySelectorAll('main > div > section').forEach(s => s.classList.add('hidden'));
+      
+      // Show selected
+      document.getElementById(`section-${section}`).classList.remove('hidden');
+      
+      // Update sidebar
+      document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+      document.getElementById(`nav-${section}`).classList.add('active');
+      
+      // Update title
+      const titles = {
+        dashboard: 'Dashboard Overview',
+        orders: 'Order Management',
+        products: 'Product Catalog',
+        inventory: 'Inventory Control',
+        customers: 'Customer Management',
+        coupons: 'Coupons & Promotions',
+        email: 'Email Marketing',
+        analytics: 'Analytics & Reports',
+        vendors: 'Vendor Management',
+        settings: 'System Settings'
+      };
+      
+      document.getElementById('page-title').textContent = titles[section];
+      
+      // Load section data
+      if (section === 'orders') loadOrders();
+      if (section === 'inventory') loadInventory();
+      if (section === 'coupons') loadCoupons();
+      if (section === 'email') loadEmailCampaigns();
+      if (section === 'vendors') loadVendors();
+    }
+
+    // Dashboard
+    async function loadDashboard() {
+      try {
+        const response = await fetch(`${API_URL}/admin/dashboard`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const stats = data.stats;
+          
+          // Animate numbers
+          animateNumber('kpi-orders', stats.totalOrders);
+          animateNumber('kpi-revenue', stats.totalRevenue, '₹', true);
+          animateNumber('kpi-customers', stats.totalCustomers);
+          animateNumber('kpi-stock', stats.lowStockProducts);
+          
+          // Update badges
+          document.getElementById('badge-orders').textContent = stats.pendingOrders;
+          document.getElementById('badge-orders').classList.toggle('hidden', stats.pendingOrders === 0);
+          
+          // Load charts
+          initMainChart();
+          initCategoryChart();
+          
+          // Load recent activity
+          loadLiveActivity();
+          loadTopProducts();
+        }
+      } catch (error) {
+        showToast('Failed to load dashboard', 'error');
+      }
+    }
+
+    function animateNumber(id, value, prefix = '', isCompact = false) {
+      const element = document.getElementById(id);
+      const duration = 1000;
+      const start = 0;
+      const startTime = performance.now();
+      
+      function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeProgress = 1 - Math.pow(1 - progress, 3); // Ease out cubic
+        const current = Math.floor(start + (value - start) * easeProgress);
+        
+        let display = current.toLocaleString();
+        if (isCompact && current > 100000) {
+          display = (current / 100000).toFixed(1) + 'L';
+        }
+        
+        element.textContent = prefix + display;
+        
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        }
+      }
+      
+      requestAnimationFrame(update);
+    }
+
+    function initMainChart() {
+      const ctx = document.getElementById('mainChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          datasets: [{
+            label: 'Revenue',
+            data: [45000, 52000, 48000, 61000, 58000, 72000, 65000],
+            borderColor: '#1a1a1a',
+            backgroundColor: 'rgba(26, 26, 26, 0.05)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointBackgroundColor: '#1a1a1a'
+          }, {
+            label: 'Orders',
+            data: [12, 15, 11, 18, 16, 22, 19],
+            borderColor: '#22c55e',
+            backgroundColor: 'transparent',
+            tension: 0.4,
+            yAxisID: 'y1',
+            pointRadius: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { 
+              beginAtZero: true,
+              ticks: {
+                callback: function(value) {
+                  return '₹' + (value / 1000) + 'k';
+                }
+              }
+            },
+            y1: {
+              position: 'right',
+              beginAtZero: true,
+              grid: { display: false }
+            },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    // Orders Management
+    async function loadOrders() {
+      try {
+        const filters = {
+          status: document.getElementById('filter-status').value,
+          payment: document.getElementById('filter-payment').value,
+          from: document.getElementById('filter-date-from').value,
+          to: document.getElementById('filter-date-to').value,
+          page: currentPage
+        };
+        
+        const queryString = new URLSearchParams(filters).toString();
+        const response = await fetch(`${API_URL}/orders?${queryString}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          renderOrdersTable(data.orders);
+          updatePagination(data.total, data.currentPage, data.totalPages);
+        }
+      } catch (error) {
+        showToast('Failed to load orders', 'error');
+      }
+    }
+
+    function renderOrdersTable(orders) {
+      const tbody = document.getElementById('orders-table-body');
+      
+      tbody.innerHTML = orders.map(order => `
+        <tr class="table-row border-b border-stone-50">
+          <td class="px-4 py-3">
+            <input type="checkbox" class="order-checkbox rounded border-stone-300" 
+              value="${order._id}" 
+              ${selectedOrders.has(order._id) ? 'checked' : ''}
+              onchange="toggleOrderSelection('${order._id}')">
+          </td>
+          <td class="px-4 py-3">
+            <span class="font-semibold text-stone-900 text-sm">${order.orderNumber}</span>
+          </td>
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 bg-stone-200 rounded-full flex items-center justify-center text-xs font-medium">
+                ${order.user.firstName?.[0] || 'U'}
+              </div>
+              <div>
+                <p class="font-medium text-sm text-stone-900">${order.user.firstName} ${order.user.lastName}</p>
+                <p class="text-xs text-stone-500">${order.user.email}</p>
+              </div>
+            </div>
+          </td>
+          <td class="px-4 py-3 text-sm text-stone-600">${order.items.length} items</td>
+          <td class="px-4 py-3 font-semibold text-stone-900">₹${order.pricing.total.toLocaleString()}</td>
+          <td class="px-4 py-3">
+            <select onchange="quickUpdateStatus('${order._id}', this.value)" 
+              class="text-xs font-medium px-2 py-1 rounded-full border-0 cursor-pointer ${getStatusColor(order.status)}">
+              <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
+              <option value="confirmed" ${order.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
+              <option value="processing" ${order.status === 'processing' ? 'selected' : ''}>Processing</option>
+              <option value="shipped" ${order.status === 'shipped' ? 'selected' : ''}>Shipped</option>
+              <option value="delivered" ${order.status === 'delivered' ? 'selected' : ''}>Delivered</option>
+              <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+            </select>
+          </td>
+          <td class="px-4 py-3">
+            <span class="text-xs px-2 py-1 rounded-full ${order.payment.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">
+              ${order.payment.status}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-sm text-stone-500">${formatDate(order.createdAt)}</td>
+          <td class="px-4 py-3">
+            <div class="flex gap-1">
+              <button onclick="viewOrderDetail('${order._id}')" class="p-1.5 hover:bg-stone-100 rounded-lg text-stone-600">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+              </button>
+              <button onclick="printInvoice('${order._id}')" class="p-1.5 hover:bg-stone-100 rounded-lg text-stone-600">
+                <i data-lucide="printer" class="w-4 h-4"></i>
+              </button>
+              <button onclick="emailCustomer('${order._id}')" class="p-1.5 hover:bg-stone-100 rounded-lg text-stone-600">
+                <i data-lucide="mail" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+      
+      lucide.createIcons();
+    }
+
+    async function quickUpdateStatus(orderId, status) {
+      try {
+        const response = await fetch(`${API_URL}/orders/${orderId}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({ status })
+        });
+        
+        if (response.ok) {
+          showToast(`Status updated to ${status}`, 'success');
+          
+          // Send email notification
+          await fetch(`${API_URL}/notifications/order-status`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ orderId, status })
+          });
+        }
+      } catch (error) {
+        showToast('Failed to update status', 'error');
+      }
+    }
+
+    // Coupons
+    function generateCouponCode() {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let code = '';
+      for (let i = 0; i < 8; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      document.getElementById('coupon-code').value = code;
+    }
+
+    async function saveCoupon(e) {
+      e.preventDefault();
+      
+      const coupon = {
+        code: document.getElementById('coupon-code').value,
+        type: document.getElementById('coupon-type').value,
+        value: document.getElementById('coupon-value').value,
+        minOrder: document.getElementById('coupon-min').value,
+        maxUses: document.getElementById('coupon-max').value,
+        startDate: document.getElementById('coupon-start').value,
+        endDate: document.getElementById('coupon-end').value
+      };
+      
+      try {
+        const response = await fetch(`${API_URL}/coupons`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(coupon)
+        });
+        
+        if (response.ok) {
+          showToast('Coupon created successfully!', 'success');
+          closeModal('coupon');
+          loadCoupons();
+        }
+      } catch (error) {
+        showToast('Failed to create coupon', 'error');
+      }
+    }
+
+    // Toast Notifications
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      const colors = {
+        success: 'bg-green-500',
+        error: 'bg-red-500',
+        warning: 'bg-orange-500',
+        info: 'bg-stone-900'
+      };
+      
+      const icons = {
+        success: 'check-circle',
+        error: 'x-circle',
+        warning: 'alert-triangle',
+        info: 'info'
+      };
+      
+      toast.className = `toast flex items-center gap-3 ${colors[type]} text-white px-6 py-4 rounded-xl shadow-2xl min-w-[300px]`;
+      toast.innerHTML = `
+        <i data-lucide="${icons[type]}" class="w-5 h-5"></i>
+        <span class="font-medium">${message}</span>
+        <button onclick="this.parentElement.remove()" class="ml-auto hover:opacity-70">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      `;
+      
+      container.appendChild(toast);
+      lucide.createIcons();
+      
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => toast.remove(), 300);
+      }, 5000);
+    }
+
+    // Utilities
+    function getStatusColor(status) {
+      const colors = {
+        pending: 'bg-yellow-100 text-yellow-800',
+        confirmed: 'bg-blue-100 text-blue-800',
+        processing: 'bg-purple-100 text-purple-800',
+        shipped: 'bg-indigo-100 text-indigo-800',
+        delivered: 'bg-green-100 text-green-800',
+        cancelled: 'bg-red-100 text-red-800'
+      };
+      return colors[status] || 'bg-stone-100 text-stone-800';
+    }
+
+    function formatDate(dateString) {
+      return new Date(dateString).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(`modal-${modalId}`).classList.add('hidden');
+    }
+
+    function showModal(modalId) {
+      document.getElementById(`modal-${modalId}`).classList.remove('hidden');
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      if (socket) socket.disconnect();
+      window.location.href = '/login.html';
+    }
+
+    // Close modals on outside click
+    window.onclick = function(event) {
+      if (event.target.classList.contains('fixed')) {
+        event.target.classList.add('hidden');
+      }
+    }
+
+    // Setup event listeners
+    function setupEventListeners() {
+      // Real-time search
+      let searchTimeout;
+      document.getElementById('global-search').addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => globalSearch(e.target.value), 300);
+      });
+    }
+
+    function globalSearch(query) {
+      if (query.length < 3) return;
+      // Implement global search across orders, products, customers
+      console.log('Searching:', query);
+    }
+
+    // Placeholder functions for features to implement
+    function loadInventory() { console.log('Loading inventory...'); }
+    function loadCoupons() { console.log('Loading coupons...'); }
+    function loadEmailCampaigns() { console.log('Loading email campaigns...'); }
+    function loadVendors() { console.log('Loading vendors...'); }
+    function viewOrderDetail(id) { showModal('order-detail'); }
+    function printInvoice(id) { window.print(); }
+    function emailCustomer(id) { showToast('Email sent to customer', 'success'); }
+    function toggleNotifications() { 
+      const dropdown = document.getElementById('notification-dropdown');
+      dropdown.classList.toggle('hidden');
+    }
+    function quickAction(type) { 
+      const actions = { order: 'Creating new order...', product: 'Adding product...', coupon: 'Creating coupon...' };
+      showToast(actions[type], 'info');
+    }
+    function setChartPeriod(period) { console.log('Setting period:', period); }
+    function addLiveActivity(data) { console.log('New activity:', data); }
+    function updateBadge(section, count) {
+      const badge = document.getElementById(`badge-${section}`);
+      if (badge) {
+        badge.textContent = parseInt(badge.textContent) + count;
+        badge.classList.remove('hidden');
+      }
+    }
+    function loadLiveActivity() {}
+    function loadTopProducts() {}
+    function initCategoryChart() {}
+    function applyOrderFilters() { loadOrders(); }
+    function changePage(dir) { currentPage += dir; loadOrders(); }
+    function updatePagination(total, current, pages) {}
+    function toggleSelectAll() {}
+    function toggleOrderSelection(id) {
+      if (selectedOrders.has(id)) selectedOrders.delete(id);
+      else selectedOrders.add(id);
+    }
+    function bulkAction() { showToast(`Bulk action on ${selectedOrders.size} orders`, 'info'); }
+    function exportData(type) { showToast(`Exporting ${type}...`, 'success'); }
+    function adjustStockBulk() {}
+    function showAddStockModal() {}
+    function showCouponModal() { showModal('coupon'); }
+    function showEmailComposer() { showModal('email-composer'); }
+    function loadTemplate(type) { showToast(`Loaded ${type} template`, 'success'); }
+    function previewEmail() {}
+    function scheduleEmail() {}
+    function sendEmailCampaign(e) { e.preventDefault(); showToast('Campaign sent!', 'success'); closeModal('email-composer'); }
+    function showVendorModal() {}
+    function markAllRead() {}
+  </script>
+</body>
+</html>

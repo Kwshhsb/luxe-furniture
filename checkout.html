@@ -1,0 +1,963 @@
+<!-- checkout.html - Complete Checkout Page -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout - LuxeForm</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://js.stripe.com/v3/"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    body { font-family: 'Inter', sans-serif; }
+    .font-serif { font-family: 'Playfair Display', serif; }
+    
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+    }
+    
+    .checkout-step {
+      transition: all 0.3s ease;
+    }
+    .checkout-step.active {
+      border-color: #1a1a1a;
+      background: #fafaf9;
+    }
+    
+    .payment-method {
+      transition: all 0.2s ease;
+    }
+    .payment-method:hover {
+      border-color: #1a1a1a;
+    }
+    .payment-method.selected {
+      border-color: #1a1a1a;
+      background: #fafaf9;
+    }
+    
+    .address-card {
+      transition: all 0.2s ease;
+    }
+    .address-card:hover {
+      border-color: #1a1a1a;
+    }
+    .address-card.selected {
+      border-color: #1a1a1a;
+      background: #fafaf9;
+    }
+    
+    .loading-overlay {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+    }
+    
+    .success-checkmark {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: block;
+      stroke-width: 2;
+      stroke: #fff;
+      stroke-miterlimit: 10;
+      box-shadow: inset 0px 0px 0px #22c55e;
+      animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
+    }
+    
+    .checkmark__circle {
+      stroke-dasharray: 166;
+      stroke-dashoffset: 166;
+      stroke-width: 2;
+      stroke-miterlimit: 10;
+      stroke: #22c55e;
+      fill: none;
+      animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+    }
+    
+    .checkmark__check {
+      transform-origin: 50% 50%;
+      stroke-dasharray: 48;
+      stroke-dashoffset: 48;
+      animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+    }
+    
+    @keyframes stroke {
+      100% { stroke-dashoffset: 0; }
+    }
+    @keyframes scale {
+      0%, 100% { transform: none; }
+      50% { transform: scale3d(1.1, 1.1, 1); }
+    }
+    @keyframes fill {
+      100% { box-shadow: inset 0px 0px 0px 30px #22c55e; }
+    }
+  </style>
+</head>
+<body class="bg-stone-50 text-stone-900 antialiased">
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay fixed inset-0 z-[9999] hidden flex items-center justify-center">
+    <div class="text-center">
+      <div class="w-16 h-16 border-4 border-stone-200 border-t-stone-900 rounded-full animate-spin mx-auto mb-4"></div>
+      <p class="text-stone-600 font-medium" id="loading-text">Processing your order...</p>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <div id="success-modal" class="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center">
+      <div class="checkmark-wrapper mb-6">
+        <svg class="success-checkmark mx-auto" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+          <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
+          <path class="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+        </svg>
+      </div>
+      <h2 class="font-serif text-3xl font-bold text-stone-900 mb-2">Order Confirmed!</h2>
+      <p class="text-stone-600 mb-6">Thank you for your purchase. Your order <span id="success-order-number" class="font-semibold text-stone-900">#LF123456</span> has been placed successfully.</p>
+      <div class="space-y-3">
+        <button onclick="window.location.href='/orders.html'" class="w-full bg-stone-900 text-white py-4 rounded-xl font-semibold hover:bg-stone-800 transition-colors">
+          View My Orders
+        </button>
+        <button onclick="window.location.href='/'" class="w-full border border-stone-300 text-stone-700 py-4 rounded-xl font-medium hover:bg-stone-50 transition-colors">
+          Continue Shopping
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="fixed w-full z-50 glass-panel border-b border-stone-200/50">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex justify-between items-center">
+        <a href="/" class="flex items-center gap-2">
+          <div class="w-10 h-10 bg-stone-900 rounded-xl flex items-center justify-center">
+            <i data-lucide="sofa" class="w-6 h-6 text-white"></i>
+          </div>
+          <span class="font-serif text-2xl font-bold text-stone-900">LuxeForm</span>
+        </a>
+        
+        <div class="flex items-center gap-4">
+          <span class="text-sm text-stone-500 hidden md:block">Secure Checkout</span>
+          <div class="flex items-center gap-2 text-sm text-stone-600">
+            <i data-lucide="shield-check" class="w-5 h-5 text-green-600"></i>
+            <span>SSL Secured</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="pt-24 pb-12 px-6 max-w-7xl mx-auto">
+    <div class="grid lg:grid-cols-3 gap-8">
+      
+      <!-- Left: Checkout Form -->
+      <div class="lg:col-span-2 space-y-6">
+        
+        <!-- Progress Steps -->
+        <div class="flex items-center gap-4 mb-8">
+          <div class="flex items-center gap-2" id="step-1-indicator">
+            <div class="w-8 h-8 rounded-full bg-stone-900 text-white flex items-center justify-center text-sm font-bold">1</div>
+            <span class="font-medium text-stone-900">Shipping</span>
+          </div>
+          <div class="flex-1 h-0.5 bg-stone-200" id="progress-line-1"></div>
+          <div class="flex items-center gap-2" id="step-2-indicator">
+            <div class="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center text-sm font-bold">2</div>
+            <span class="font-medium text-stone-500">Payment</span>
+          </div>
+          <div class="flex-1 h-0.5 bg-stone-200" id="progress-line-2"></div>
+          <div class="flex items-center gap-2" id="step-3-indicator">
+            <div class="w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center text-sm font-bold">3</div>
+            <span class="font-medium text-stone-500">Review</span>
+          </div>
+        </div>
+
+        <!-- Step 1: Shipping Address -->
+        <div id="step-1" class="checkout-step bg-white rounded-2xl shadow-sm border border-stone-200 p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="font-serif text-2xl font-bold text-stone-900">Shipping Address</h2>
+            <button onclick="addNewAddress()" class="text-sm text-stone-600 hover:text-stone-900 font-medium flex items-center gap-1">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              Add New
+            </button>
+          </div>
+
+          <!-- Saved Addresses -->
+          <div id="saved-addresses" class="grid md:grid-cols-2 gap-4 mb-6">
+            <!-- Loaded from backend -->
+            <div class="address-card border-2 border-stone-200 rounded-xl p-4 cursor-pointer selected" data-address-id="1">
+              <div class="flex justify-between items-start mb-2">
+                <span class="text-xs font-medium text-stone-500 uppercase tracking-wider">Default</span>
+                <input type="radio" name="shipping-address" value="1" checked class="w-4 h-4 text-stone-900">
+              </div>
+              <p class="font-semibold text-stone-900">Rahul Sharma</p>
+              <p class="text-sm text-stone-600 mt-1">123 Main Street, Apt 4B</p>
+              <p class="text-sm text-stone-600">Mumbai, Maharashtra 400001</p>
+              <p class="text-sm text-stone-600 mt-1">+91 98765 43210</p>
+            </div>
+          </div>
+
+          <!-- New Address Form -->
+          <form id="address-form" class="hidden space-y-4">
+            <div class="grid md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-stone-700 mb-2">First Name *</label>
+                <input type="text" id="addr-firstname" required class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 transition-colors">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-stone-700 mb-2">Last Name *</label>
+                <input type="text" id="addr-lastname" required class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 transition-colors">
+              </div>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-stone-700 mb-2">Phone Number *</label>
+              <input type="tel" id="addr-phone" required class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 transition-colors" placeholder="+91 98765 43210">
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-stone-700 mb-2">Street Address *</label>
+              <input type="text" id="addr-street" required class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 transition-colors" placeholder="House number, building, street">
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-stone-700 mb-2">City *</label>
+                <input type="text" id="addr-city" required class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 transition-colors">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-stone-700 mb-2">State *</label>
+                <select id="addr-state" required class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 transition-colors bg-white">
+                  <option value="">Select State</option>
+                  <option value="Maharashtra">Maharashtra</option>
+                  <option value="Karnataka">Karnataka</option>
+                  <option value="Delhi">Delhi</option>
+                  <option value="Tamil Nadu">Tamil Nadu</option>
+                  <option value="Gujarat">Gujarat</option>
+                  <option value="Telangana">Telangana</option>
+                  <option value="West Bengal">West Bengal</option>
+                  <option value="Rajasthan">Rajasthan</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-stone-700 mb-2">PIN Code *</label>
+                <input type="text" id="addr-zip" required pattern="[0-9]{6}" class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 transition-colors" placeholder="400001">
+              </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="addr-default" class="w-4 h-4 rounded border-stone-300 text-stone-900 focus:ring-stone-900">
+              <label for="addr-default" class="text-sm text-stone-600">Set as default address</label>
+            </div>
+            
+            <div class="flex gap-3 pt-4">
+              <button type="button" onclick="cancelNewAddress()" class="flex-1 px-4 py-3 border border-stone-300 rounded-xl font-medium text-stone-700 hover:bg-stone-50 transition-colors">
+                Cancel
+              </button>
+              <button type="submit" class="flex-1 px-4 py-3 bg-stone-900 text-white rounded-xl font-medium hover:bg-stone-800 transition-colors">
+                Save Address
+              </button>
+            </div>
+          </form>
+
+          <button onclick="goToStep(2)" id="btn-to-payment" class="w-full mt-6 bg-stone-900 text-white py-4 rounded-xl font-semibold hover:bg-stone-800 transition-colors flex items-center justify-center gap-2">
+            <span>Continue to Payment</span>
+            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Step 2: Payment -->
+        <div id="step-2" class="checkout-step bg-white rounded-2xl shadow-sm border border-stone-200 p-6 hidden">
+          <h2 class="font-serif text-2xl font-bold text-stone-900 mb-6">Payment Method</h2>
+          
+          <!-- Payment Methods -->
+          <div class="space-y-3 mb-6">
+            <label class="payment-method selected block border-2 border-stone-200 rounded-xl p-4 cursor-pointer" onclick="selectPayment('card')">
+              <div class="flex items-center gap-4">
+                <input type="radio" name="payment-method" value="card" checked class="w-4 h-4 text-stone-900">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="credit-card" class="w-5 h-5 text-stone-600"></i>
+                    <span class="font-semibold text-stone-900">Credit/Debit Card</span>
+                  </div>
+                  <p class="text-sm text-stone-500 mt-1">Visa, Mastercard, RuPay</p>
+                </div>
+                <div class="flex gap-2">
+                  <div class="w-10 h-6 bg-stone-200 rounded"></div>
+                  <div class="w-10 h-6 bg-stone-200 rounded"></div>
+                </div>
+              </div>
+              
+              <!-- Card Form -->
+              <div id="card-form" class="mt-4 pt-4 border-t border-stone-100 space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-stone-700 mb-2">Card Number</label>
+                  <div id="card-element" class="px-4 py-3 border border-stone-200 rounded-xl bg-white"></div>
+                  <div id="card-errors" class="text-red-500 text-sm mt-2 hidden"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-2">Expiry</label>
+                    <div id="card-expiry" class="px-4 py-3 border border-stone-200 rounded-xl bg-white"></div>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-stone-700 mb-2">CVC</label>
+                    <div id="card-cvc" class="px-4 py-3 border border-stone-200 rounded-xl bg-white"></div>
+                  </div>
+                </div>
+              </div>
+            </label>
+
+            <label class="payment-method block border-2 border-stone-200 rounded-xl p-4 cursor-pointer" onclick="selectPayment('upi')">
+              <div class="flex items-center gap-4">
+                <input type="radio" name="payment-method" value="upi" class="w-4 h-4 text-stone-900">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="smartphone" class="w-5 h-5 text-stone-600"></i>
+                    <span class="font-semibold text-stone-900">UPI</span>
+                  </div>
+                  <p class="text-sm text-stone-500 mt-1">Google Pay, PhonePe, Paytm</p>
+                </div>
+              </div>
+              
+              <div id="upi-form" class="hidden mt-4 pt-4 border-t border-stone-100">
+                <input type="text" placeholder="Enter UPI ID (name@upi)" class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+              </div>
+            </label>
+
+            <label class="payment-method block border-2 border-stone-200 rounded-xl p-4 cursor-pointer" onclick="selectPayment('netbanking')">
+              <div class="flex items-center gap-4">
+                <input type="radio" name="payment-method" value="netbanking" class="w-4 h-4 text-stone-900">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="landmark" class="w-5 h-5 text-stone-600"></i>
+                    <span class="font-semibold text-stone-900">Net Banking</span>
+                  </div>
+                  <p class="text-sm text-stone-500 mt-1">All major banks supported</p>
+                </div>
+              </div>
+            </label>
+
+            <label class="payment-method block border-2 border-stone-200 rounded-xl p-4 cursor-pointer" onclick="selectPayment('cod')">
+              <div class="flex items-center gap-4">
+                <input type="radio" name="payment-method" value="cod" class="w-4 h-4 text-stone-900">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="banknote" class="w-5 h-5 text-stone-600"></i>
+                    <span class="font-semibold text-stone-900">Cash on Delivery</span>
+                  </div>
+                  <p class="text-sm text-stone-500 mt-1">Pay when you receive</p>
+                </div>
+              </div>
+            </label>
+          </div>
+
+          <!-- Coupon Code -->
+          <div class="border-t border-stone-100 pt-6 mb-6">
+            <label class="block text-sm font-medium text-stone-700 mb-2">Have a coupon code?</label>
+            <div class="flex gap-2">
+              <input type="text" id="coupon-code" placeholder="Enter code" class="flex-1 px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 uppercase">
+              <button onclick="applyCoupon()" class="px-6 py-3 bg-stone-100 text-stone-900 rounded-xl font-medium hover:bg-stone-200 transition-colors">
+                Apply
+              </button>
+            </div>
+            <p id="coupon-message" class="text-sm mt-2 hidden"></p>
+          </div>
+
+          <div class="flex gap-3">
+            <button onclick="goToStep(1)" class="flex-1 px-4 py-3 border border-stone-300 rounded-xl font-medium text-stone-700 hover:bg-stone-50 transition-colors">
+              Back
+            </button>
+            <button onclick="goToStep(3)" class="flex-1 bg-stone-900 text-white py-3 rounded-xl font-semibold hover:bg-stone-800 transition-colors">
+              Review Order
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3: Review -->
+        <div id="step-3" class="checkout-step bg-white rounded-2xl shadow-sm border border-stone-200 p-6 hidden">
+          <h2 class="font-serif text-2xl font-bold text-stone-900 mb-6">Review Your Order</h2>
+          
+          <!-- Order Items -->
+          <div class="space-y-4 mb-6" id="review-items">
+            <!-- Loaded dynamically -->
+          </div>
+
+          <!-- Shipping Address Summary -->
+          <div class="border-t border-stone-100 pt-6 mb-6">
+            <div class="flex justify-between items-start mb-4">
+              <h3 class="font-semibold text-stone-900">Shipping Address</h3>
+              <button onclick="goToStep(1)" class="text-sm text-stone-600 hover:text-stone-900">Change</button>
+            </div>
+            <div id="review-address" class="bg-stone-50 rounded-xl p-4 text-sm text-stone-600">
+              <!-- Address loaded here -->
+            </div>
+          </div>
+
+          <!-- Payment Summary -->
+          <div class="border-t border-stone-100 pt-6 mb-6">
+            <div class="flex justify-between items-start mb-4">
+              <h3 class="font-semibold text-stone-900">Payment Method</h3>
+              <button onclick="goToStep(2)" class="text-sm text-stone-600 hover:text-stone-900">Change</button>
+            </div>
+            <div id="review-payment" class="bg-stone-50 rounded-xl p-4 text-sm text-stone-600 flex items-center gap-3">
+              <i data-lucide="credit-card" class="w-5 h-5"></i>
+              <span>Card ending in 4242</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 mb-6">
+            <input type="checkbox" id="terms-agree" required class="w-4 h-4 rounded border-stone-300 text-stone-900 focus:ring-stone-900">
+            <label for="terms-agree" class="text-sm text-stone-600">
+              I agree to the <a href="#" class="text-stone-900 underline">Terms of Service</a> and <a href="#" class="text-stone-900 underline">Privacy Policy</a>
+            </label>
+          </div>
+
+          <div class="flex gap-3">
+            <button onclick="goToStep(2)" class="flex-1 px-4 py-3 border border-stone-300 rounded-xl font-medium text-stone-700 hover:bg-stone-50 transition-colors">
+              Back
+            </button>
+            <button onclick="placeOrder()" id="btn-place-order" class="flex-1 bg-stone-900 text-white py-4 rounded-xl font-semibold hover:bg-stone-800 transition-colors flex items-center justify-center gap-2">
+              <span>Place Order</span>
+              <i data-lucide="lock" class="w-5 h-5"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right: Order Summary -->
+      <div class="lg:col-span-1">
+        <div class="sticky top-24 bg-white rounded-2xl shadow-sm border border-stone-200 p-6">
+          <h3 class="font-serif text-xl font-bold text-stone-900 mb-6">Order Summary</h3>
+          
+          <!-- Cart Items -->
+          <div class="space-y-4 mb-6 max-h-64 overflow-y-auto" id="summary-items">
+            <!-- Items loaded here -->
+          </div>
+
+          <!-- Price Breakdown -->
+          <div class="space-y-3 text-sm border-t border-stone-100 pt-4">
+            <div class="flex justify-between text-stone-600">
+              <span>Subtotal</span>
+              <span id="summary-subtotal">₹0</span>
+            </div>
+            <div class="flex justify-between text-stone-600">
+              <span>Shipping</span>
+              <span id="summary-shipping" class="text-green-600">FREE</span>
+            </div>
+            <div class="flex justify-between text-stone-600">
+              <span>Tax (18% GST)</span>
+              <span id="summary-tax">₹0</span>
+            </div>
+            <div id="summary-discount-row" class="flex justify-between text-green-600 hidden">
+              <span>Discount</span>
+              <span id="summary-discount">-₹0</span>
+            </div>
+            <div class="border-t border-stone-100 pt-3 flex justify-between font-bold text-lg text-stone-900">
+              <span>Total</span>
+              <span id="summary-total">₹0</span>
+            </div>
+          </div>
+
+          <!-- Trust Badges -->
+          <div class="mt-6 pt-6 border-t border-stone-100 grid grid-cols-3 gap-4 text-center">
+            <div>
+              <i data-lucide="shield-check" class="w-6 h-6 mx-auto mb-2 text-green-600"></i>
+              <p class="text-xs text-stone-500">Secure Payment</p>
+            </div>
+            <div>
+              <i data-lucide="truck" class="w-6 h-6 mx-auto mb-2 text-blue-600"></i>
+              <p class="text-xs text-stone-500">Free Shipping</p>
+            </div>
+            <div>
+              <i data-lucide="refresh-cw" class="w-6 h-6 mx-auto mb-2 text-orange-600"></i>
+              <p class="text-xs text-stone-500">Easy Returns</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    const API_URL = 'http://localhost:5000/api';
+    let currentStep = 1;
+    let cart = null;
+    let selectedAddress = null;
+    let selectedPayment = 'card';
+    let stripe = null;
+    let cardElement = null;
+    let appliedCoupon = null;
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', async () => {
+      lucide.createIcons();
+      await initCheckout();
+    });
+
+    async function initCheckout() {
+      // Check auth
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = '/login.html?redirect=checkout';
+        return;
+      }
+
+      // Load cart
+      await loadCart();
+      
+      // Load saved addresses
+      await loadAddresses();
+      
+      // Initialize Stripe
+      initStripe();
+      
+      // Render summary
+      renderOrderSummary();
+    }
+
+    async function loadCart() {
+      try {
+        const response = await fetch(`${API_URL}/cart`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          cart = data.cart;
+          
+          if (!cart.items || cart.items.length === 0) {
+            window.location.href = '/';
+            return;
+          }
+          
+          renderCartItems();
+        }
+      } catch (error) {
+        console.error('Failed to load cart:', error);
+        showToast('Failed to load cart', 'error');
+      }
+    }
+
+    function renderCartItems() {
+      const container = document.getElementById('summary-items');
+      const reviewContainer = document.getElementById('review-items');
+      
+      const itemsHtml = cart.items.map(item => `
+        <div class="flex gap-4">
+          <div class="w-16 h-16 bg-stone-100 rounded-lg flex items-center justify-center flex-shrink-0">
+            <i data-lucide="sofa" class="w-8 h-8 text-stone-300"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-medium text-stone-900 text-sm truncate">${item.product?.name || 'Product'}</h4>
+            <p class="text-xs text-stone-500 mt-0.5">
+              ${item.customOptions?.size || ''} • ${item.customOptions?.color || ''}
+            </p>
+            <div class="flex justify-between items-center mt-1">
+              <span class="text-xs text-stone-500">Qty: ${item.quantity}</span>
+              <span class="font-medium text-sm">₹${(item.price * item.quantity).toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+      
+      container.innerHTML = itemsHtml;
+      reviewContainer.innerHTML = itemsHtml;
+      
+      updateSummaryTotals();
+      lucide.createIcons();
+    }
+
+    function updateSummaryTotals() {
+      const totals = cart.totals || calculateTotals();
+      
+      document.getElementById('summary-subtotal').textContent = '₹' + totals.subtotal.toLocaleString();
+      document.getElementById('summary-tax').textContent = '₹' + totals.tax.toLocaleString();
+      document.getElementById('summary-total').textContent = '₹' + totals.total.toLocaleString();
+      
+      if (appliedCoupon) {
+        document.getElementById('summary-discount-row').classList.remove('hidden');
+        document.getElementById('summary-discount').textContent = '-₹' + appliedCoupon.discount.toLocaleString();
+      }
+    }
+
+    function calculateTotals() {
+      const subtotal = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const tax = Math.round(subtotal * 0.18);
+      const shipping = subtotal > 50000 ? 0 : 1500;
+      const discount = appliedCoupon ? appliedCoupon.discount : 0;
+      
+      return {
+        subtotal,
+        tax,
+        shipping,
+        discount,
+        total: subtotal + tax + shipping - discount
+      };
+    }
+
+    // Address Management
+    async function loadAddresses() {
+      try {
+        const response = await fetch(`${API_URL}/users/addresses`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          renderAddresses(data.addresses);
+        }
+      } catch (error) {
+        console.error('Failed to load addresses:', error);
+      }
+    }
+
+    function renderAddresses(addresses) {
+      const container = document.getElementById('saved-addresses');
+      
+      if (!addresses || addresses.length === 0) {
+        container.innerHTML = '<p class="text-stone-500 text-sm col-span-2">No saved addresses. Please add a new address.</p>';
+        addNewAddress();
+        return;
+      }
+      
+      container.innerHTML = addresses.map((addr, idx) => `
+        <div class="address-card border-2 ${addr.isDefault ? 'border-stone-900 bg-stone-50' : 'border-stone-200'} rounded-xl p-4 cursor-pointer" 
+             onclick="selectAddress('${addr._id || idx}')"
+             data-address-id="${addr._id || idx}">
+          <div class="flex justify-between items-start mb-2">
+            ${addr.isDefault ? '<span class="text-xs font-medium text-stone-500 uppercase tracking-wider">Default</span>' : '<span></span>'}
+            <input type="radio" name="shipping-address" value="${addr._id || idx}" ${addr.isDefault ? 'checked' : ''} class="w-4 h-4 text-stone-900">
+          </div>
+          <p class="font-semibold text-stone-900">${addr.firstName || ''} ${addr.lastName || ''}</p>
+          <p class="text-sm text-stone-600 mt-1">${addr.street}</p>
+          <p class="text-sm text-stone-600">${addr.city}, ${addr.state} ${addr.zipCode}</p>
+          <p class="text-sm text-stone-600 mt-1">${addr.phone}</p>
+        </div>
+      `).join('');
+    }
+
+    function selectAddress(addressId) {
+      selectedAddress = addressId;
+      document.querySelectorAll('.address-card').forEach(card => {
+        if (card.dataset.addressId === addressId) {
+          card.classList.add('selected', 'border-stone-900', 'bg-stone-50');
+          card.classList.remove('border-stone-200');
+          card.querySelector('input').checked = true;
+        } else {
+          card.classList.remove('selected', 'border-stone-900', 'bg-stone-50');
+          card.classList.add('border-stone-200');
+          card.querySelector('input').checked = false;
+        }
+      });
+    }
+
+    function addNewAddress() {
+      document.getElementById('address-form').classList.remove('hidden');
+      document.getElementById('saved-addresses').classList.add('hidden');
+      document.getElementById('btn-to-payment').classList.add('hidden');
+    }
+
+    function cancelNewAddress() {
+      document.getElementById('address-form').classList.add('hidden');
+      document.getElementById('saved-addresses').classList.remove('hidden');
+      document.getElementById('btn-to-payment').classList.remove('hidden');
+    }
+
+    document.getElementById('address-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const address = {
+        firstName: document.getElementById('addr-firstname').value,
+        lastName: document.getElementById('addr-lastname').value,
+        phone: document.getElementById('addr-phone').value,
+        street: document.getElementById('addr-street').value,
+        city: document.getElementById('addr-city').value,
+        state: document.getElementById('addr-state').value,
+        zipCode: document.getElementById('addr-zip').value,
+        isDefault: document.getElementById('addr-default').checked
+      };
+      
+      try {
+        const response = await fetch(`${API_URL}/users/addresses`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(address)
+        });
+        
+        if (response.ok) {
+          showToast('Address saved!', 'success');
+          cancelNewAddress();
+          await loadAddresses();
+        }
+      } catch (error) {
+        showToast('Failed to save address', 'error');
+      }
+    });
+
+    // Step Navigation
+    function goToStep(step) {
+      // Validate current step
+      if (currentStep === 1 && step > 1) {
+        if (!selectedAddress && !document.querySelector('.address-card.selected')) {
+          showToast('Please select a shipping address', 'error');
+          return;
+        }
+      }
+      
+      // Hide all steps
+      document.getElementById('step-1').classList.add('hidden');
+      document.getElementById('step-2').classList.add('hidden');
+      document.getElementById('step-3').classList.add('hidden');
+      
+      // Show target step
+      document.getElementById(`step-${step}`).classList.remove('hidden');
+      
+      // Update indicators
+      updateStepIndicators(step);
+      
+      currentStep = step;
+      
+      // If going to review, update review data
+      if (step === 3) {
+        updateReviewData();
+      }
+    }
+
+    function updateStepIndicators(step) {
+      // Reset all
+      for (let i = 1; i <= 3; i++) {
+        const indicator = document.getElementById(`step-${i}-indicator`);
+        const number = indicator.querySelector('div');
+        const text = indicator.querySelector('span');
+        
+        if (i < step) {
+          number.className = 'w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold';
+          number.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i>';
+          text.className = 'font-medium text-green-600';
+        } else if (i === step) {
+          number.className = 'w-8 h-8 rounded-full bg-stone-900 text-white flex items-center justify-center text-sm font-bold';
+          number.textContent = i;
+          text.className = 'font-medium text-stone-900';
+        } else {
+          number.className = 'w-8 h-8 rounded-full bg-stone-200 text-stone-600 flex items-center justify-center text-sm font-bold';
+          number.textContent = i;
+          text.className = 'font-medium text-stone-500';
+        }
+      }
+      
+      // Update progress lines
+      document.getElementById('progress-line-1').className = step > 1 ? 'flex-1 h-0.5 bg-green-500' : 'flex-1 h-0.5 bg-stone-200';
+      document.getElementById('progress-line-2').className = step > 2 ? 'flex-1 h-0.5 bg-green-500' : 'flex-1 h-0.5 bg-stone-200';
+      
+      lucide.createIcons();
+    }
+
+    // Payment
+    function initStripe() {
+      stripe = Stripe('pk_test_your_publishable_key');
+      const elements = stripe.elements();
+      
+      cardElement = elements.create('card', {
+        style: {
+          base: {
+            fontSize: '16px',
+            color: '#1a1a1a',
+            '::placeholder': { color: '#a8a29e' }
+          }
+        }
+      });
+      
+      cardElement.mount('#card-element');
+    }
+
+    function selectPayment(method) {
+      selectedPayment = method;
+      
+      // Update UI
+      document.querySelectorAll('.payment-method').forEach(el => {
+        el.classList.remove('selected', 'border-stone-900', 'bg-stone-50');
+        el.classList.add('border-stone-200');
+        el.querySelector('input').checked = false;
+      });
+      
+      event.currentTarget.classList.add('selected', 'border-stone-900', 'bg-stone-50');
+      event.currentTarget.classList.remove('border-stone-200');
+      event.currentTarget.querySelector('input').checked = true;
+      
+      // Show/hide forms
+      document.getElementById('card-form').classList.toggle('hidden', method !== 'card');
+      document.getElementById('upi-form').classList.toggle('hidden', method !== 'upi');
+    }
+
+    async function applyCoupon() {
+      const code = document.getElementById('coupon-code').value;
+      if (!code) return;
+      
+      try {
+        const response = await fetch(`${API_URL}/cart/coupon`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({ code })
+        });
+        
+        const data = await response.json();
+        const messageEl = document.getElementById('coupon-message');
+        
+        if (data.success) {
+          appliedCoupon = data.coupon;
+          messageEl.textContent = `Coupon applied! You saved ₹${data.coupon.discount.toLocaleString()}`;
+          messageEl.className = 'text-sm mt-2 text-green-600';
+          messageEl.classList.remove('hidden');
+          updateSummaryTotals();
+          showToast('Coupon applied!', 'success');
+        } else {
+          messageEl.textContent = data.message || 'Invalid coupon code';
+          messageEl.className = 'text-sm mt-2 text-red-600';
+          messageEl.classList.remove('hidden');
+        }
+      } catch (error) {
+        showToast('Failed to apply coupon', 'error');
+      }
+    }
+
+    function updateReviewData() {
+      // Get selected address
+      const selectedAddr = document.querySelector('.address-card.selected');
+      if (selectedAddr) {
+        document.getElementById('review-address').innerHTML = selectedAddr.innerHTML;
+      }
+      
+      // Payment info
+      const paymentText = {
+        card: 'Credit/Debit Card',
+        upi: 'UPI',
+        netbanking: 'Net Banking',
+        cod: 'Cash on Delivery'
+      };
+      
+      document.getElementById('review-payment').innerHTML = `
+        <i data-lucide="${selectedPayment === 'card' ? 'credit-card' : selectedPayment === 'upi' ? 'smartphone' : selectedPayment === 'cod' ? 'banknote' : 'landmark'}" class="w-5 h-5"></i>
+        <span>${paymentText[selectedPayment]}</span>
+      `;
+      
+      lucide.createIcons();
+    }
+
+    // Place Order
+    async function placeOrder() {
+      if (!document.getElementById('terms-agree').checked) {
+        showToast('Please agree to the terms', 'error');
+        return;
+      }
+      
+      const btn = document.getElementById('btn-place-order');
+      btn.innerHTML = '<div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Processing...';
+      btn.disabled = true;
+      
+      document.getElementById('loading-overlay').classList.remove('hidden');
+      
+      try {
+        // 1. Create order
+        const selectedAddr = document.querySelector('.address-card.selected');
+        const addressText = selectedAddr ? selectedAddr.innerText : '';
+        
+        const orderData = {
+          shippingAddress: {
+            street: document.getElementById('addr-street')?.value || '123 Main St',
+            city: document.getElementById('addr-city')?.value || 'Mumbai',
+            state: document.getElementById('addr-state')?.value || 'Maharashtra',
+            zipCode: document.getElementById('addr-zip')?.value || '400001',
+            country: 'India'
+          },
+          billingAddress: {
+            street: document.getElementById('addr-street')?.value || '123 Main St',
+            city: document.getElementById('addr-city')?.value || 'Mumbai',
+            state: document.getElementById('addr-state')?.value || 'Maharashtra',
+            zipCode: document.getElementById('addr-zip')?.value || '400001',
+            country: 'India'
+          },
+          paymentMethod: selectedPayment
+        };
+        
+        const orderResponse = await fetch(`${API_URL}/orders/create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(orderData)
+        });
+        
+        const orderResult = await orderResponse.json();
+        
+        if (!orderResult.success) {
+          throw new Error(orderResult.message);
+        }
+        
+        // 2. Process payment if card
+        if (selectedPayment === 'card') {
+          const paymentResponse = await fetch(`${API_URL}/payment/create-intent`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ orderId: orderResult.order._id })
+          });
+          
+          const paymentResult = await paymentResponse.json();
+          
+          const { error, paymentIntent } = await stripe.confirmCardPayment(
+            paymentResult.clientSecret,
+            {
+              payment_method: {
+                card: cardElement,
+                billing_details: {
+                  name: document.getElementById('addr-firstname')?.value + ' ' + document.getElementById('addr-lastname')?.value
+                }
+              }
+            }
+          );
+          
+          if (error) {
+            throw new Error(error.message);
+          }
+        }
+        
+        // Success
+        document.getElementById('loading-overlay').classList.add('hidden');
+        document.getElementById('success-order-number').textContent = orderResult.order.orderNumber;
+        document.getElementById('success-modal').classList.remove('hidden');
+        
+        // Clear cart
+        localStorage.removeItem('cart');
+        
+      } catch (error) {
+        document.getElementById('loading-overlay').classList.add('hidden');
+        btn.innerHTML = '<span>Place Order</span><i data-lucide="lock" class="w-5 h-5"></i>';
+        btn.disabled = false;
+        lucide.createIcons();
+        showToast(error.message || 'Failed to place order', 'error');
+      }
+    }
+
+    // Toast
+    function showToast(message, type = 'info') {
+      // Implementation same as previous
+      console.log(message);
+    }
+  </script>
+</body>
+</html>

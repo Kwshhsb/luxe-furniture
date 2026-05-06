@@ -1,0 +1,788 @@
+<!-- profile.html - Complete User Profile Page -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile - LuxeForm</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    body { font-family: 'Inter', sans-serif; }
+    .font-serif { font-family: 'Playfair Display', serif; }
+    
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+    }
+    
+    .nav-item {
+      transition: all 0.2s ease;
+    }
+    .nav-item:hover, .nav-item.active {
+      background: #f5f5f4;
+      color: #1a1a1a;
+    }
+    .nav-item.active {
+      border-right: 3px solid #1a1a1a;
+    }
+    
+    .profile-section {
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .address-card {
+      transition: all 0.2s ease;
+    }
+    .address-card:hover {
+      border-color: #1a1a1a;
+      transform: translateY(-2px);
+    }
+    
+    .order-mini {
+      transition: all 0.2s ease;
+    }
+    .order-mini:hover {
+      background: #f9fafb;
+    }
+    
+    .stat-card {
+      background: linear-gradient(135deg, #ffffff 0%, #fafaf9 100%);
+    }
+  </style>
+</head>
+<body class="bg-stone-50 text-stone-900 antialiased">
+
+  <!-- Navigation -->
+  <nav class="fixed w-full z-50 glass-panel border-b border-stone-200/50">
+    <div class="max-w-7xl mx-auto px-6 py-4">
+      <div class="flex justify-between items-center">
+        <a href="/" class="flex items-center gap-2">
+          <div class="w-10 h-10 bg-stone-900 rounded-xl flex items-center justify-center">
+            <i data-lucide="sofa" class="w-6 h-6 text-white"></i>
+          </div>
+          <span class="font-serif text-2xl font-bold text-stone-900">LuxeForm</span>
+        </a>
+        
+        <div class="flex items-center gap-4">
+          <a href="/" class="text-stone-600 hover:text-stone-900 font-medium">Continue Shopping</a>
+          <div class="relative">
+            <button onclick="toggleCart()" class="p-2 hover:bg-stone-100 rounded-full relative">
+              <i data-lucide="shopping-bag" class="w-6 h-6 text-stone-700"></i>
+              <span id="cart-count" class="absolute -top-1 -right-1 w-5 h-5 bg-stone-900 text-white text-xs rounded-full flex items-center justify-center hidden">0</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="pt-24 pb-12 px-6 max-w-7xl mx-auto">
+    <div class="grid lg:grid-cols-4 gap-8">
+      
+      <!-- Sidebar Navigation -->
+      <div class="lg:col-span-1">
+        <div class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden sticky top-24">
+          <!-- Profile Header -->
+          <div class="p-6 border-b border-stone-100 text-center">
+            <div class="relative inline-block mb-4">
+              <div class="w-24 h-24 bg-stone-200 rounded-full flex items-center justify-center mx-auto overflow-hidden">
+                <img id="sidebar-avatar" src="" class="w-full h-full object-cover hidden">
+                <span id="sidebar-initials" class="text-3xl font-bold text-stone-600">U</span>
+              </div>
+              <button onclick="editAvatar()" class="absolute bottom-0 right-0 w-8 h-8 bg-stone-900 text-white rounded-full flex items-center justify-center hover:bg-stone-800 transition-colors">
+                <i data-lucide="camera" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <h2 class="font-serif text-xl font-bold text-stone-900" id="sidebar-name">User Name</h2>
+            <p class="text-sm text-stone-500" id="sidebar-email">user@example.com</p>
+            <p class="text-xs text-stone-400 mt-1">Member since <span id="member-since">2024</span></p>
+          </div>
+
+          <!-- Navigation -->
+          <nav class="py-2">
+            <button onclick="showSection('overview')" class="nav-item active w-full flex items-center gap-3 px-6 py-3 text-stone-600 font-medium" data-section="overview">
+              <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+              <span>Overview</span>
+            </button>
+            <button onclick="showSection('orders')" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-stone-600 font-medium" data-section="orders">
+              <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+              <span>My Orders</span>
+              <span id="nav-order-count" class="ml-auto bg-stone-900 text-white text-xs px-2 py-0.5 rounded-full hidden">0</span>
+            </button>
+            <button onclick="showSection('addresses')" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-stone-600 font-medium" data-section="addresses">
+              <i data-lucide="map-pin" class="w-5 h-5"></i>
+              <span>Addresses</span>
+            </button>
+            <button onclick="showSection('wishlist')" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-stone-600 font-medium" data-section="wishlist">
+              <i data-lucide="heart" class="w-5 h-5"></i>
+              <span>Wishlist</span>
+              <span id="nav-wishlist-count" class="ml-auto bg-stone-900 text-white text-xs px-2 py-0.5 rounded-full hidden">0</span>
+            </button>
+            <button onclick="showSection('designs')" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-stone-600 font-medium" data-section="designs">
+              <i data-lucide="box" class="w-5 h-5"></i>
+              <span>Saved Designs</span>
+            </button>
+            <button onclick="showSection('settings')" class="nav-item w-full flex items-center gap-3 px-6 py-3 text-stone-600 font-medium" data-section="settings">
+              <i data-lucide="settings" class="w-5 h-5"></i>
+              <span>Settings</span>
+            </button>
+          </nav>
+
+          <!-- Logout -->
+          <div class="p-4 border-t border-stone-100">
+            <button onclick="logout()" class="w-full flex items-center gap-3 px-4 py-3 text-red-600 font-medium hover:bg-red-50 rounded-xl transition-colors">
+              <i data-lucide="log-out" class="w-5 h-5"></i>
+              <span>Sign Out</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Content Area -->
+      <div class="lg:col-span-3">
+        
+        <!-- OVERVIEW SECTION -->
+        <section id="section-overview" class="profile-section space-y-6">
+          <!-- Stats Cards -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="stat-card p-6 rounded-2xl shadow-sm border border-stone-100">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="p-2 bg-stone-100 rounded-lg">
+                  <i data-lucide="shopping-bag" class="w-5 h-5 text-stone-600"></i>
+                </div>
+                <span class="text-2xl font-bold text-stone-900" id="stat-orders">0</span>
+              </div>
+              <p class="text-sm text-stone-500">Total Orders</p>
+            </div>
+            <div class="stat-card p-6 rounded-2xl shadow-sm border border-stone-100">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="p-2 bg-green-100 rounded-lg">
+                  <i data-lucide="check-circle" class="w-5 h-5 text-green-600"></i>
+                </div>
+                <span class="text-2xl font-bold text-stone-900" id="stat-delivered">0</span>
+              </div>
+              <p class="text-sm text-stone-500">Delivered</p>
+            </div>
+            <div class="stat-card p-6 rounded-2xl shadow-sm border border-stone-100">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="p-2 bg-red-100 rounded-lg">
+                  <i data-lucide="heart" class="w-5 h-5 text-red-600"></i>
+                </div>
+                <span class="text-2xl font-bold text-stone-900" id="stat-wishlist">0</span>
+              </div>
+              <p class="text-sm text-stone-500">Wishlist Items</p>
+            </div>
+            <div class="stat-card p-6 rounded-2xl shadow-sm border border-stone-100">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="p-2 bg-blue-100 rounded-lg">
+                  <i data-lucide="box" class="w-5 h-5 text-blue-600"></i>
+                </div>
+                <span class="text-2xl font-bold text-stone-900" id="stat-designs">0</span>
+              </div>
+              <p class="text-sm text-stone-500">Saved Designs</p>
+            </div>
+          </div>
+
+          <!-- Recent Orders -->
+          <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-6">
+            <div class="flex justify-between items-center mb-6">
+              <h3 class="font-serif text-xl font-bold text-stone-900">Recent Orders</h3>
+              <button onclick="showSection('orders')" class="text-sm text-stone-600 hover:text-stone-900 font-medium">View All</button>
+            </div>
+            <div id="recent-orders-list" class="space-y-3">
+              <!-- Loaded dynamically -->
+              <div class="text-center py-8 text-stone-400">
+                <p>No orders yet</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="bg-gradient-to-br from-stone-900 to-stone-800 text-white rounded-2xl p-6">
+              <h3 class="font-serif text-xl font-bold mb-2">Design Your Own</h3>
+              <p class="text-stone-300 text-sm mb-4">Create custom furniture with our 3D configurator</p>
+              <a href="/#configurator" class="inline-flex items-center gap-2 bg-white text-stone-900 px-4 py-2 rounded-lg font-medium hover:bg-stone-100 transition-colors">
+                Start Designing
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </a>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-6">
+              <h3 class="font-serif text-xl font-bold text-stone-900 mb-2">Need Help?</h3>
+              <p class="text-stone-500 text-sm mb-4">Our support team is here to assist you</p>
+              <button onclick="contactSupport()" class="inline-flex items-center gap-2 bg-stone-100 text-stone-900 px-4 py-2 rounded-lg font-medium hover:bg-stone-200 transition-colors">
+                Contact Support
+                <i data-lucide="message-circle" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ORDERS SECTION -->
+        <section id="section-orders" class="profile-section hidden space-y-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-6">
+            <h3 class="font-serif text-xl font-bold text-stone-900 mb-6">Order History</h3>
+            <div id="all-orders-list" class="space-y-4">
+              <!-- All orders loaded here -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ADDRESSES SECTION -->
+        <section id="section-addresses" class="profile-section hidden space-y-6">
+          <div class="flex justify-between items-center">
+            <h3 class="font-serif text-xl font-bold text-stone-900">Saved Addresses</h3>
+            <button onclick="showAddAddressModal()" class="px-4 py-2 bg-stone-900 text-white rounded-lg font-medium hover:bg-stone-800 transition-colors flex items-center gap-2">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              Add Address
+            </button>
+          </div>
+
+          <div id="addresses-grid" class="grid md:grid-cols-2 gap-4">
+            <!-- Addresses loaded here -->
+          </div>
+        </section>
+
+        <!-- WISHLIST SECTION -->
+        <section id="section-wishlist" class="profile-section hidden space-y-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-6">
+            <div class="flex justify-between items-center mb-6">
+              <h3 class="font-serif text-xl font-bold text-stone-900">My Wishlist</h3>
+              <button onclick="addAllToCart()" class="text-sm text-stone-600 hover:text-stone-900 font-medium">
+                Add All to Cart
+              </button>
+            </div>
+            <div id="wishlist-grid" class="grid md:grid-cols-2 gap-4">
+              <!-- Wishlist items loaded here -->
+            </div>
+          </div>
+        </section>
+
+        <!-- SAVED DESIGNS SECTION -->
+        <section id="section-designs" class="profile-section hidden space-y-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-6">
+            <h3 class="font-serif text-xl font-bold text-stone-900 mb-6">My Custom Designs</h3>
+            <div id="designs-grid" class="grid md:grid-cols-2 gap-4">
+              <!-- Saved designs loaded here -->
+            </div>
+          </div>
+        </section>
+
+        <!-- SETTINGS SECTION -->
+        <section id="section-settings" class="profile-section hidden space-y-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-6">
+            <h3 class="font-serif text-xl font-bold text-stone-900 mb-6">Account Settings</h3>
+            
+            <form onsubmit="updateProfile(event)" class="space-y-6">
+              <div class="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-stone-700 mb-2">First Name</label>
+                  <input type="text" id="setting-firstname" class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 transition-colors">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-stone-700 mb-2">Last Name</label>
+                  <input type="text" id="setting-lastname" class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 transition-colors">
+                </div>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-stone-700 mb-2">Email</label>
+                <input type="email" id="setting-email" readonly class="w-full px-4 py-3 border border-stone-200 rounded-xl bg-stone-50 text-stone-500">
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-stone-700 mb-2">Phone</label>
+                <input type="tel" id="setting-phone" class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 transition-colors">
+              </div>
+              
+              <div class="border-t border-stone-100 pt-6">
+                <h4 class="font-medium text-stone-900 mb-4">Change Password</h4>
+                <div class="space-y-4">
+                  <input type="password" placeholder="Current Password" class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 transition-colors">
+                  <input type="password" placeholder="New Password" class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 transition-colors">
+                  <input type="password" placeholder="Confirm New Password" class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 transition-colors">
+                </div>
+              </div>
+              
+              <button type="submit" class="w-full bg-stone-900 text-white py-4 rounded-xl font-semibold hover:bg-stone-800 transition-colors">
+                Save Changes
+              </button>
+            </form>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Address Modal -->
+  <div id="modal-address" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 modal-enter">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="font-serif text-xl font-bold text-stone-900">Add New Address</h3>
+        <button onclick="closeModal('address')" class="p-2 hover:bg-stone-100 rounded-full">
+          <i data-lucide="x" class="w-5 h-5 text-stone-500"></i>
+        </button>
+      </div>
+      
+      <form onsubmit="saveAddress(event)" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <input type="text" id="addr-firstname" placeholder="First Name" required class="px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+          <input type="text" id="addr-lastname" placeholder="Last Name" required class="px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+        </div>
+        <input type="tel" id="addr-phone" placeholder="Phone Number" required class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+        <input type="text" id="addr-street" placeholder="Street Address" required class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+        <div class="grid grid-cols-3 gap-4">
+          <input type="text" id="addr-city" placeholder="City" required class="px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+          <select id="addr-state" required class="px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900 bg-white">
+            <option value="">State</option>
+            <option value="Maharashtra">Maharashtra</option>
+            <option value="Karnataka">Karnataka</option>
+            <option value="Delhi">Delhi</option>
+          </select>
+          <input type="text" id="addr-zip" placeholder="PIN Code" required class="px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:border-stone-900">
+        </div>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" id="addr-default" class="w-4 h-4 rounded border-stone-300 text-stone-900 focus:ring-stone-900">
+          <span class="text-sm text-stone-600">Set as default address</span>
+        </label>
+        <div class="flex gap-3 pt-4">
+          <button type="button" onclick="closeModal('address')" class="flex-1 px-4 py-3 border border-stone-300 rounded-xl font-medium text-stone-700 hover:bg-stone-50">Cancel</button>
+          <button type="submit" class="flex-1 px-4 py-3 bg-stone-900 text-white rounded-xl font-medium hover:bg-stone-800">Save Address</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:5000/api';
+    let user = null;
+    let orders = [];
+    let addresses = [];
+    let wishlist = [];
+    let designs = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      lucide.createIcons();
+      await initProfile();
+    });
+
+    async function initProfile() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = '/login.html?redirect=profile';
+        return;
+      }
+
+      // Load user data
+      await loadUserData();
+      
+      // Load all data
+      await Promise.all([
+        loadOrders(),
+        loadAddresses(),
+        loadWishlist(),
+        loadDesigns(),
+        loadCart()
+      ]);
+
+      updateUI();
+    }
+
+    async function loadUserData() {
+      try {
+        const response = await fetch(`${API_URL}/auth/me`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          user = data.user;
+          
+          // Update sidebar
+          document.getElementById('sidebar-name').textContent = `${user.firstName} ${user.lastName}`;
+          document.getElementById('sidebar-email').textContent = user.email;
+          document.getElementById('sidebar-initials').textContent = `${user.firstName[0]}${user.lastName[0]}`;
+          
+          if (user.avatar) {
+            document.getElementById('sidebar-avatar').src = user.avatar;
+            document.getElementById('sidebar-avatar').classList.remove('hidden');
+            document.getElementById('sidebar-initials').classList.add('hidden');
+          }
+          
+          // Update settings form
+          document.getElementById('setting-firstname').value = user.firstName;
+          document.getElementById('setting-lastname').value = user.lastName;
+          document.getElementById('setting-email').value = user.email;
+          document.getElementById('setting-phone').value = user.phone || '';
+          
+          // Member since
+          const created = new Date(user.createdAt);
+          document.getElementById('member-since').textContent = created.getFullYear();
+        }
+      } catch (error) {
+        console.error('Failed to load user:', error);
+      }
+    }
+
+    async function loadOrders() {
+      try {
+        const response = await fetch(`${API_URL}/orders/my-orders`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          orders = data.orders;
+          
+          // Update stats
+          document.getElementById('stat-orders').textContent = orders.length;
+          document.getElementById('stat-delivered').textContent = orders.filter(o => o.status === 'delivered').length;
+          document.getElementById('nav-order-count').textContent = orders.length;
+          document.getElementById('nav-order-count').classList.remove('hidden');
+          
+          // Render recent orders
+          renderRecentOrders();
+        }
+      } catch (error) {
+        console.error('Failed to load orders:', error);
+      }
+    }
+
+    function renderRecentOrders() {
+      const container = document.getElementById('recent-orders-list');
+      const allContainer = document.getElementById('all-orders-list');
+      
+      const recent = orders.slice(0, 3);
+      
+      const renderOrder = (order) => `
+        <div class="order-mini flex items-center justify-between p-4 bg-stone-50 rounded-xl cursor-pointer" onclick="window.location.href='/orders.html?id=${order._id}'">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
+              <i data-lucide="package" class="w-6 h-6 text-stone-400"></i>
+            </div>
+            <div>
+              <p class="font-semibold text-stone-900">${order.orderNumber}</p>
+              <p class="text-sm text-stone-500">${formatDate(order.createdAt)} • ${order.items.length} items</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="font-bold text-stone-900">₹${order.pricing.total.toLocaleString()}</p>
+            <span class="text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)}">${order.status}</span>
+          </div>
+        </div>
+      `;
+      
+      container.innerHTML = recent.length ? recent.map(renderOrder).join('') : '<p class="text-center text-stone-400 py-4">No orders yet</p>';
+      allContainer.innerHTML = orders.length ? orders.map(renderOrder).join('') : '<p class="text-center text-stone-400 py-4">No orders yet</p>';
+      
+      lucide.createIcons();
+    }
+
+    async function loadAddresses() {
+      try {
+        const response = await fetch(`${API_URL}/users/addresses`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          addresses = data.addresses;
+          renderAddresses();
+        }
+      } catch (error) {
+        console.error('Failed to load addresses:', error);
+      }
+    }
+
+    function renderAddresses() {
+      const container = document.getElementById('addresses-grid');
+      
+      container.innerHTML = addresses.map((addr, idx) => `
+        <div class="address-card bg-white rounded-2xl shadow-sm border border-stone-200 p-6 relative">
+          ${addr.isDefault ? '<span class="absolute top-4 right-4 text-xs font-medium text-stone-500 bg-stone-100 px-2 py-1 rounded-full">Default</span>' : ''}
+          <div class="flex items-start gap-3 mb-4">
+            <div class="p-2 bg-stone-100 rounded-lg">
+              <i data-lucide="map-pin" class="w-5 h-5 text-stone-600"></i>
+            </div>
+            <div>
+              <p class="font-semibold text-stone-900">${addr.firstName} ${addr.lastName}</p>
+              <p class="text-sm text-stone-500">${addr.phone}</p>
+            </div>
+          </div>
+          <p class="text-sm text-stone-600 mb-1">${addr.street}</p>
+          <p class="text-sm text-stone-600">${addr.city}, ${addr.state} ${addr.zipCode}</p>
+          <div class="flex gap-2 mt-4 pt-4 border-t border-stone-100">
+            <button onclick="editAddress(${idx})" class="flex-1 py-2 text-sm font-medium text-stone-600 hover:text-stone-900">Edit</button>
+            <button onclick="deleteAddress(${idx})" class="flex-1 py-2 text-sm font-medium text-red-600 hover:text-red-700">Delete</button>
+            ${!addr.isDefault ? `<button onclick="setDefaultAddress(${idx})" class="flex-1 py-2 text-sm font-medium text-stone-600 hover:text-stone-900">Set Default</button>` : ''}
+          </div>
+        </div>
+      `).join('');
+      
+      lucide.createIcons();
+    }
+
+    async function loadWishlist() {
+      try {
+        const response = await fetch(`${API_URL}/users/wishlist`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          wishlist = data.wishlist || [];
+          
+          document.getElementById('stat-wishlist').textContent = wishlist.length;
+          document.getElementById('nav-wishlist-count').textContent = wishlist.length;
+          document.getElementById('nav-wishlist-count').classList.toggle('hidden', wishlist.length === 0);
+          
+          renderWishlist();
+        }
+      } catch (error) {
+        console.error('Failed to load wishlist:', error);
+      }
+    }
+
+    function renderWishlist() {
+      const container = document.getElementById('wishlist-grid');
+      
+      if (wishlist.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-2 text-center py-12 text-stone-400">
+            <i data-lucide="heart" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
+            <p>Your wishlist is empty</p>
+            <a href="/" class="inline-block mt-4 text-stone-900 font-medium hover:underline">Browse Products</a>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+      
+      container.innerHTML = wishlist.map(item => `
+        <div class="flex gap-4 p-4 bg-stone-50 rounded-xl">
+          <div class="w-24 h-24 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+            <img src="${item.images?.thumbnail || ''}" class="w-full h-full object-cover rounded-lg hidden" onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden')">
+            <i data-lucide="sofa" class="w-10 h-10 text-stone-300 hidden"></i>
+          </div>
+          <div class="flex-1">
+            <h4 class="font-semibold text-stone-900">${item.name}</h4>
+            <p class="text-lg font-bold text-stone-900 mt-1">₹${item.basePrice.toLocaleString()}</p>
+            <div class="flex gap-2 mt-3">
+              <button onclick="addToCart('${item._id}')" class="flex-1 bg-stone-900 text-white py-2 rounded-lg text-sm font-medium hover:bg-stone-800">Add to Cart</button>
+              <button onclick="removeFromWishlist('${item._id}')" class="px-3 py-2 border border-stone-300 rounded-lg text-stone-600 hover:bg-stone-100">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+      
+      lucide.createIcons();
+    }
+
+    async function loadDesigns() {
+      try {
+        const response = await fetch(`${API_URL}/configurations/my-configurations`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          designs = data.configurations || [];
+          
+          document.getElementById('stat-designs').textContent = designs.length;
+          renderDesigns();
+        }
+      } catch (error) {
+        console.error('Failed to load designs:', error);
+      }
+    }
+
+    function renderDesigns() {
+      const container = document.getElementById('designs-grid');
+      
+      if (designs.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-2 text-center py-12 text-stone-400">
+            <i data-lucide="box" class="w-16 h-16 mx-auto mb-4 opacity-30"></i>
+            <p>No saved designs yet</p>
+            <a href="/#configurator" class="inline-block mt-4 text-stone-900 font-medium hover:underline">Create Your First Design</a>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+      
+      container.innerHTML = designs.map(design => `
+        <div class="bg-stone-50 rounded-xl p-4">
+          <div class="h-40 bg-white rounded-lg flex items-center justify-center mb-4">
+            <i data-lucide="box" class="w-16 h-16 text-stone-300"></i>
+          </div>
+          <h4 class="font-semibold text-stone-900">${design.name}</h4>
+          <p class="text-sm text-stone-500 mt-1">${design.product?.name || 'Custom Design'}</p>
+          <div class="flex flex-wrap gap-2 mt-2">
+            <span class="text-xs px-2 py-1 bg-white rounded">${design.options?.size?.name}</span>
+            <span class="text-xs px-2 py-1 bg-white rounded">${design.options?.color?.name}</span>
+          </div>
+          <div class="flex justify-between items-center mt-4">
+            <span class="font-bold text-stone-900">₹${design.calculatedPrice.toLocaleString()}</span>
+            <div class="flex gap-2">
+              <button onclick="loadDesign('${design._id}')" class="p-2 text-stone-600 hover:bg-white rounded-lg">
+                <i data-lucide="edit" class="w-4 h-4"></i>
+              </button>
+              <button onclick="addDesignToCart('${design._id}')" class="p-2 bg-stone-900 text-white rounded-lg hover:bg-stone-800">
+                <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+      
+      lucide.createIcons();
+    }
+
+    async function loadCart() {
+      try {
+        const response = await fetch(`${API_URL}/cart`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const count = data.cart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+          
+          const badge = document.getElementById('cart-count');
+          if (count > 0) {
+            badge.textContent = count;
+            badge.classList.remove('hidden');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load cart:', error);
+      }
+    }
+
+    // Navigation
+    function showSection(section) {
+      // Hide all sections
+      document.querySelectorAll('.profile-section').forEach(s => s.classList.add('hidden'));
+      
+      // Show selected
+      document.getElementById(`section-${section}`).classList.remove('hidden');
+      
+      // Update nav
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.section === section) {
+          item.classList.add('active');
+        }
+      });
+    }
+
+    // Modal functions
+    function showAddAddressModal() {
+      document.getElementById('modal-address').classList.remove('hidden');
+    }
+
+    function closeModal(modal) {
+      document.getElementById(`modal-${modal}`).classList.add('hidden');
+    }
+
+    async function saveAddress(e) {
+      e.preventDefault();
+      
+      const address = {
+        firstName: document.getElementById('addr-firstname').value,
+        lastName: document.getElementById('addr-lastname').value,
+        phone: document.getElementById('addr-phone').value,
+        street: document.getElementById('addr-street').value,
+        city: document.getElementById('addr-city').value,
+        state: document.getElementById('addr-state').value,
+        zipCode: document.getElementById('addr-zip').value,
+        isDefault: document.getElementById('addr-default').checked
+      };
+      
+      try {
+        const response = await fetch(`${API_URL}/users/addresses`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(address)
+        });
+        
+        if (response.ok) {
+          showToast('Address saved!', 'success');
+          closeModal('address');
+          await loadAddresses();
+        }
+      } catch (error) {
+        showToast('Failed to save address', 'error');
+      }
+    }
+
+    async function updateProfile(e) {
+      e.preventDefault();
+      showToast('Profile updated!', 'success');
+    }
+
+    function editAvatar() {
+      showToast('Avatar upload coming soon!', 'info');
+    }
+
+    function contactSupport() {
+      window.location.href = 'mailto:support@luxefurniture.com';
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/';
+    }
+
+    function getStatusColor(status) {
+      const colors = {
+        pending: 'bg-yellow-100 text-yellow-800',
+        confirmed: 'bg-blue-100 text-blue-800',
+        processing: 'bg-purple-100 text-purple-800',
+        shipped: 'bg-indigo-100 text-indigo-800',
+        delivered: 'bg-green-100 text-green-800'
+      };
+      return colors[status] || 'bg-stone-100 text-stone-800';
+    }
+
+    function formatDate(dateString) {
+      return new Date(dateString).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+    }
+
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `fixed top-4 right-4 z-[9999] px-6 py-4 rounded-xl text-white ${type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-stone-900'} shadow-2xl`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    // Close modals on outside click
+    window.onclick = function(event) {
+      if (event.target.id === 'modal-address') {
+        closeModal('address');
+      }
+    }
+  </script>
+</body>
+</html>
